@@ -3,7 +3,7 @@ project(KubeInterpreterTests)
 get_filename_component(KubeInterpreterTestsDir ${CMAKE_CURRENT_LIST_FILE} PATH)
 
 set(KubeInterpreterTestsSources
-    ${KubeInterpreterTestsDir}/tests_Interpreter.cpp
+    ${KubeInterpreterTestsDir}/tests_Object.cpp
 )
 
 add_executable(${CMAKE_PROJECT_NAME} ${KubeInterpreterTestsSources})
