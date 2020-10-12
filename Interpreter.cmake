@@ -3,12 +3,7 @@ project(KubeInterpreter)
 get_filename_component(KubeInterpreterDir ${CMAKE_CURRENT_LIST_FILE} PATH)
 
 set(KubeInterpreterSources
-    ${KubeInterpreterDir}/Make.hpp
-    ${KubeInterpreterDir}/Reflection.hpp
-    ${KubeInterpreterDir}/Reflection.cpp
-    ${KubeInterpreterDir}/Object.hpp
-    ${KubeInterpreterDir}/Object.ipp
-    ${KubeInterpreterDir}/Object.cpp
+    ${KubeInterpreterDir}/Dummy.cpp
 )
 
 add_library(${PROJECT_NAME} ${KubeInterpreterSources})
@@ -16,6 +11,7 @@ add_library(${PROJECT_NAME} ${KubeInterpreterSources})
 target_link_libraries(${PROJECT_NAME}
 PUBLIC
     KubeCore
+    KubeObject
     KubeMeta
 )
 
