@@ -10,9 +10,7 @@ add_library(${PROJECT_NAME} ${KubeInterpreterSources})
 
 target_link_libraries(${PROJECT_NAME}
 PUBLIC
-    KubeCore
     KubeObject
-    KubeMeta
 )
 
 if(${KF_TESTS})
