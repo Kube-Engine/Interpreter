@@ -49,6 +49,7 @@ private:
         { _Pool.deallocate(data, bytes, alignment); }
 
 private:
+    Token *token {};
     Core::AllocatedTinySmallVector<Ptr, 4, &Allocate, &Deallocate> _children {};
 };
 

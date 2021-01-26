@@ -3,7 +3,12 @@ project(KubeInterpreter)
 get_filename_component(KubeInterpreterDir ${CMAKE_CURRENT_LIST_FILE} PATH)
 
 set(KubeInterpreterSources
-    ${KubeInterpreterDir}/Dummy.cpp
+    ${KubeInterpreterDir}/Base.hpp
+    ${KubeInterpreterDir}/Lexer.hpp
+    ${KubeInterpreterDir}/Lexer.ipp
+    ${KubeInterpreterDir}/Lexer.cpp
+    ${KubeInterpreterDir}/TokenStack.hpp
+    ${KubeInterpreterDir}/TokenStack.ipp
 )
 
 add_library(${PROJECT_NAME} ${KubeInterpreterSources})

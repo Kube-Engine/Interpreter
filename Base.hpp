@@ -6,12 +6,25 @@
 #pragma once
 
 #include <Kube/Core/Utils.hpp>
+#include <Kube/Core/Hash.hpp>
 
 namespace kF::Lang
 {
-    using ByteIndex = std::uint32_t;
     using FileIndex = std::uint16_t;
-    using Token = std::uint32_t;
+    using LineIndex = std::uint16_t;
+    using ColumnIndex = std::uint16_t;
+
+    struct Token
+    {
+        FileIndex file { 0u };
+        LineIndex line { 0u };
+        ColumnIndex column { 0u };
+        std::uint16_t length { 0u };
+
+        /** @brief Comparison opeartor */
+        [[nodiscard]] bool operator==(const Token &other) const noexcept
+            { return file == other.file && line == other.line && column == other.column && length == other.length; }
+    };
 
     /** @brief Command set of contexts (class parsing) */
     enum class TokenType : std::uint16_t {
