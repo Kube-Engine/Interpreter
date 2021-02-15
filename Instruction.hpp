@@ -12,11 +12,11 @@ namespace kF::Lang
     struct Instruction;
 }
 
-struct alignas_eighth_cacheline kF::Lang::Instruction
-{
-    InstructionType type;
-    FileIndex file;
-    Token token;
-};
+// struct alignas_eighth_cacheline kF::Lang::Instruction
+// {
+//     InstructionType type;
+//     FileIndex file;
+//     Token token;
+// };
 
-static_assert_fit_eighth_cacheline(kF::Lang::Instruction);
+// static_assert_fit_eighth_cacheline(kF::Lang::Instruction);

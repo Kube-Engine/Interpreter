@@ -4,6 +4,7 @@ get_filename_component(KubeInterpreterBenchmarksDir ${CMAKE_CURRENT_LIST_FILE} P
 
 set(KubeInterpreterBenchmarksSources
     ${KubeInterpreterBenchmarksDir}/Main.cpp
+    ${KubeInterpreterBenchmarksDir}/bench_Instruction.cpp
 )
 
 add_executable(${CMAKE_PROJECT_NAME} ${KubeInterpreterBenchmarksSources})
