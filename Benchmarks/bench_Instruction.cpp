@@ -131,7 +131,9 @@ static void BenchRecursive(benchmark::State &state)
         };
     }
 
-    // std::cout << "Recursive: " << RecursiveProcesser(res).process().as<int>() << std::endl;
+    //
+
+    std::cout << "Recursive: " << RecursiveProcesser(res).process().as<int>() << std::endl;
     for (auto _ : state) {
         benchmark::DoNotOptimize(RecursiveProcesser(res).process());
     }
@@ -278,7 +280,9 @@ static void BenchStack(benchmark::State &state)
 
     auto processer = std::make_unique<StackProcesser>();
 
-    // std::cout << "Stack: " << processer->process(res, 3).as<int>() << std::endl;
+    //
+
+    std::cout << "Stack: " << processer->process(res, 3).as<int>() << std::endl;
     for (auto _ : state) {
         benchmark::DoNotOptimize(processer->process(res, 3));
     }
