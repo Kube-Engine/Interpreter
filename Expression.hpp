@@ -32,10 +32,16 @@ public:
 
     /** @brief Release an expression aquired before with 'Construct' */
     [[nodiscard]] static inline void Release(const ExpressionPtr instance) noexcept
-        { Deallocate(instance, instance->_size); }
+        { Deallocate(instance, instance->size()); }
 
     /** @brief Default destructor, does nothing */
     ~Expression(void) noexcept = default;
+
+    /** @brief Get the self allocation size */
+    [[nodiscard]] std::size_t size(void) const noexcept { return _size; }
+
+    /** @brief Execute the expression */
+    Var operator()(Var *args) const;
 
 private:
     std::size_t _size; // Used to deallocate 'this' instance
