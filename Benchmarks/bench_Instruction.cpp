@@ -43,19 +43,20 @@ static void BenchNative(benchmark::State &state)
 }
 BENCHMARK(BenchNative);
 
-static void BenchNativeAdvanced(benchmark::State &state)
-{
-    kF::Meta::Resolver::Clear();
-    kF::RegisterMetadata();
-    kF::Var *x = new kF::Var(1);
+// template<int Value, int Count>
+// static void BenchNative10(benchmark::State &state)
+// {
+//     kF::Meta::Resolver::Clear();
+//     kF::RegisterMetadata();
+//     kF::Var *x = new kF::Var(1);
 
-    if ((*x + *x + *x + *x + *x + *x + *x + *x + *x + *x).as<int>() != 10)
-        throw std::logic_error("Native advanced: code is broken");
-    for (auto _ : state) {
-        benchmark::DoNotOptimize(*x + *x + *x + *x + *x + *x + *x + *x + *x + *x);
-    }
-}
-BENCHMARK(BenchNativeAdvanced);
+//     if ((*x + *x + *x + *x + *x + *x + *x + *x + *x + *x).as<int>() != 10)
+//         throw std::logic_error("Native advanced: code is broken");
+//     for (auto _ : state) {
+//         benchmark::DoNotOptimize(*x + *x + *x + *x + *x + *x + *x + *x + *x + *x);
+//     }
+// }
+// BENCHMARK(BenchNativeAdvanced);
 
 /* Recursive
     Naive approach to code execution using the C++ stack and recursion
@@ -77,6 +78,11 @@ struct alignas(8) RecursiveGet
     alignas(8) Type type {};
     kF::Meta::Data data {};
     kF::Object *target {};
+};
+
+struct alignas(8) RecursiveReturn
+{
+    alignas(8) Type type {};
 };
 
 static_assert(sizeof(RecursiveAddition) == 8);
@@ -107,6 +113,11 @@ public:
             const auto get = reinterpret_cast<const RecursiveGet *>(_it);
             _it += sizeof(RecursiveGet);
             return get->target->getVar(get->data);
+        }
+        case 3:
+        {
+            _it += sizeof(RecursiveReturn);
+            return process();
         }
         default:
             throw std::logic_error("Invalid Recursive instruction");
@@ -145,9 +156,8 @@ static void BenchRecursive(benchmark::State &state)
             type: 1,
             data: cst.get()
         };
+        data += sizeof(RecursiveConstant);
     }
-
-    //
 
     if (RecursiveProcesser(res).process().as<int>() != 3)
         throw std::logic_error("Recursive: code is broken");
@@ -159,264 +169,58 @@ static void BenchRecursive(benchmark::State &state)
 }
 BENCHMARK(BenchRecursive);
 
-static void BenchRecursiveAdvanced(benchmark::State &state)
+static void RecursiveAdditionBenchmarkAdditionGenerator(benchmark::State &state, const int value, const int count)
 {
+
     kF::Meta::Resolver::Clear();
     kF::RegisterMetadata();
 
-    const auto res = kF::Core::Utils::AlignedAlloc<64, std::byte>(sizeof(RecursiveAddition) * 9 + sizeof(RecursiveConstant) * 10);
-    auto cst = std::make_unique<kF::Var>(1);
+    const auto addCount = count - 1;
+    const auto res = kF::Core::Utils::AlignedAlloc<64, std::byte>(sizeof(RecursiveAddition) * addCount + sizeof(RecursiveConstant) * count);
+    auto cst = std::make_unique<kF::Var>(value);
 
-    { // Create an addition: 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1
+    {
         auto data = res;
-        // +
-        new (data) RecursiveAddition {
-            type: 0,
-        };
-        data += sizeof(RecursiveAddition);
-        // 1
-        new (data) RecursiveConstant {
-            type: 1,
-            data: cst.get()
-        };
-        data += sizeof(RecursiveConstant);
-        // +
-        new (data) RecursiveAddition {
-            type: 0,
-        };
-        data += sizeof(RecursiveAddition);
-        // 1
-        new (data) RecursiveConstant {
-            type: 1,
-            data: cst.get()
-        };
-        data += sizeof(RecursiveConstant);
-        // +
-        new (data) RecursiveAddition {
-            type: 0,
-        };
-        data += sizeof(RecursiveAddition);
-        // 1
-        new (data) RecursiveConstant {
-            type: 1,
-            data: cst.get()
-        };
-        data += sizeof(RecursiveConstant);
-        // +
-        new (data) RecursiveAddition {
-            type: 0,
-        };
-        data += sizeof(RecursiveAddition);
-        // 1
-        new (data) RecursiveConstant {
-            type: 1,
-            data: cst.get()
-        };
-        data += sizeof(RecursiveConstant);
-        // +
-        new (data) RecursiveAddition {
-            type: 0,
-        };
-        data += sizeof(RecursiveAddition);
-        // 1
-        new (data) RecursiveConstant {
-            type: 1,
-            data: cst.get()
-        };
-        data += sizeof(RecursiveConstant);
-        // +
-        new (data) RecursiveAddition {
-            type: 0,
-        };
-        data += sizeof(RecursiveAddition);
-        // 1
-        new (data) RecursiveConstant {
-            type: 1,
-            data: cst.get()
-        };
-        data += sizeof(RecursiveConstant);
-        // +
-        new (data) RecursiveAddition {
-            type: 0,
-        };
-        data += sizeof(RecursiveAddition);
-        // 1
-        new (data) RecursiveConstant {
-            type: 1,
-            data: cst.get()
-        };
-        data += sizeof(RecursiveConstant);
-        // +
-        new (data) RecursiveAddition {
-            type: 0,
-        };
-        data += sizeof(RecursiveAddition);
-        // 1
-        new (data) RecursiveConstant {
-            type: 1,
-            data: cst.get()
-        };
-        data += sizeof(RecursiveConstant);
-        // +
-        new (data) RecursiveAddition {
-            type: 0,
-        };
-        data += sizeof(RecursiveAddition);
-        // 1
-        new (data) RecursiveConstant {
-            type: 1,
-            data: cst.get()
-        };
-        data += sizeof(RecursiveConstant);
-        // 1
-        new (data) RecursiveConstant {
-            type: 1,
-            data: cst.get()
-        };
-        data += sizeof(RecursiveConstant);
+        for (auto i = 0; i < addCount; ++i) {
+            new (data) RecursiveAddition {
+                type: 0,
+            };
+            data += sizeof(RecursiveAddition);
+
+        }
+        for (auto i = 0; i < count; ++i) {
+            new (data) RecursiveConstant {
+                type: 1,
+                data: cst.get()
+            };
+            data += sizeof(RecursiveConstant);
+        }
     }
 
-    //
-
-    if (RecursiveProcesser(res).process().as<int>() != 10)
-        throw std::logic_error("Recursive advanced: code is broken");
+    if (RecursiveProcesser(res).process().as<int>() != value * count)
+        throw std::logic_error("Recursive: code is broken");
     for (auto _ : state) {
         benchmark::DoNotOptimize(RecursiveProcesser(res).process());
     }
 
     std::free(res);
 }
-BENCHMARK(BenchRecursiveAdvanced);
 
-static void BenchRecursiveAdvancedAlt(benchmark::State &state)
-{
-    kF::Meta::Resolver::Clear();
-    kF::RegisterMetadata();
+#define REGISTER_RECURSIVE_TEST(count) \
+static void BenchRecursive##count(benchmark::State &state) \
+{ \
+    RecursiveAdditionBenchmarkAdditionGenerator(state, 1, count); \
+} \
+BENCHMARK(BenchRecursive##count);
 
-    const auto res = kF::Core::Utils::AlignedAlloc<64, std::byte>(sizeof(RecursiveAddition) * 9 + sizeof(RecursiveConstant) * 10);
-    auto cst = std::make_unique<kF::Var>(1);
-
-    { // Create an addition: 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1
-        auto data = res;
-        // +
-        new (data) RecursiveAddition {
-            type: 0,
-        };
-        data += sizeof(RecursiveAddition);
-        // +
-        new (data) RecursiveAddition {
-            type: 0,
-        };
-        data += sizeof(RecursiveAddition);
-        // +
-        new (data) RecursiveAddition {
-            type: 0,
-        };
-        data += sizeof(RecursiveAddition);
-        // +
-        new (data) RecursiveAddition {
-            type: 0,
-        };
-        data += sizeof(RecursiveAddition);
-        // +
-        new (data) RecursiveAddition {
-            type: 0,
-        };
-        data += sizeof(RecursiveAddition);
-        // +
-        new (data) RecursiveAddition {
-            type: 0,
-        };
-        data += sizeof(RecursiveAddition);
-        // +
-        new (data) RecursiveAddition {
-            type: 0,
-        };
-        data += sizeof(RecursiveAddition);
-        // +
-        new (data) RecursiveAddition {
-            type: 0,
-        };
-        data += sizeof(RecursiveAddition);
-        // +
-        new (data) RecursiveAddition {
-            type: 0,
-        };
-        data += sizeof(RecursiveAddition);
-        // 1
-        new (data) RecursiveConstant {
-            type: 1,
-            data: cst.get()
-        };
-        data += sizeof(RecursiveConstant);
-        // 1
-        new (data) RecursiveConstant {
-            type: 1,
-            data: cst.get()
-        };
-        data += sizeof(RecursiveConstant);
-        // 1
-        new (data) RecursiveConstant {
-            type: 1,
-            data: cst.get()
-        };
-        data += sizeof(RecursiveConstant);
-        // 1
-        new (data) RecursiveConstant {
-            type: 1,
-            data: cst.get()
-        };
-        data += sizeof(RecursiveConstant);
-        // 1
-        new (data) RecursiveConstant {
-            type: 1,
-            data: cst.get()
-        };
-        data += sizeof(RecursiveConstant);
-        // 1
-        new (data) RecursiveConstant {
-            type: 1,
-            data: cst.get()
-        };
-        data += sizeof(RecursiveConstant);
-        // 1
-        new (data) RecursiveConstant {
-            type: 1,
-            data: cst.get()
-        };
-        data += sizeof(RecursiveConstant);
-        // 1
-        new (data) RecursiveConstant {
-            type: 1,
-            data: cst.get()
-        };
-        data += sizeof(RecursiveConstant);
-        // 1
-        new (data) RecursiveConstant {
-            type: 1,
-            data: cst.get()
-        };
-        data += sizeof(RecursiveConstant);
-        // 1
-        new (data) RecursiveConstant {
-            type: 1,
-            data: cst.get()
-        };
-        data += sizeof(RecursiveConstant);
-    }
-
-    //
-
-    if (RecursiveProcesser(res).process().as<int>() != 10)
-        throw std::logic_error("Recursive advanced (alt): code is broken");
-    for (auto _ : state) {
-        benchmark::DoNotOptimize(RecursiveProcesser(res).process());
-    }
-
-    std::free(res);
-}
-BENCHMARK(BenchRecursiveAdvancedAlt);
-
+REGISTER_RECURSIVE_TEST(2)
+REGISTER_RECURSIVE_TEST(4)
+REGISTER_RECURSIVE_TEST(8)
+REGISTER_RECURSIVE_TEST(16)
+REGISTER_RECURSIVE_TEST(32)
+REGISTER_RECURSIVE_TEST(64)
+REGISTER_RECURSIVE_TEST(128)
+REGISTER_RECURSIVE_TEST(256)
 
 /* Stack
     A more difficult approach to code execution using a stack and registers to manipulate memory
@@ -568,172 +372,52 @@ static void BenchStack(benchmark::State &state)
 BENCHMARK(BenchStack);
 
 
-static void BenchStackAdvanced(benchmark::State &state)
+static void StackAdditionBenchmarkAdditionGenerator(benchmark::State &state, const int value, const int count)
 {
     kF::Meta::Resolver::Clear();
     kF::RegisterMetadata();
 
-    auto res = kF::Core::Utils::AlignedAlloc<64, std::byte>(
-        sizeof(StackLoadConstant) * 10 + sizeof(StackAddition) * 9 + sizeof(StackReturn)
-    );
-    auto cst = std::make_unique<kF::Var>(1);
+    const auto addCount = count - 1;
 
-    { // Create an addition: 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1
+    auto res = kF::Core::Utils::AlignedAlloc<64, std::byte>(
+        sizeof(StackLoadConstant) * count + sizeof(StackAddition) * addCount + sizeof(StackReturn)
+    );
+    auto cst = std::make_unique<kF::Var>(value);
+
+    {
         auto it = reinterpret_cast<std::byte *>(res);
 
-        // 1 -> Register 0
         new (it) StackLoadConstant {
             code: 1,
             reg: 0,
             data: cst.get()
         };
         it += sizeof(StackLoadConstant);
-        // 1 -> Register 1
-        new (it) StackLoadConstant {
-            code: 1,
-            reg: 1,
-            data: cst.get()
-        };
-        it += sizeof(StackLoadConstant);
-        // Register 0 + 1 -> Register 1
-        new (it) StackAddition {
-            code: 2,
-            reg: 1,
-            lhs: 0,
-            rhs: 1
-        };
-        it += sizeof(StackAddition);
-        // 1 -> Register 0
-        new (it) StackLoadConstant {
-            code: 1,
-            reg: 0,
-            data: cst.get()
-        };
-        it += sizeof(StackLoadConstant);
-        // Register 0 + 1 -> Register 1
-        new (it) StackAddition {
-            code: 2,
-            reg: 1,
-            lhs: 0,
-            rhs: 1
-        };
-        it += sizeof(StackAddition);
-        // 1 -> Register 0
-        new (it) StackLoadConstant {
-            code: 1,
-            reg: 0,
-            data: cst.get()
-        };
-        it += sizeof(StackLoadConstant);
-        // Register 0 + 1 -> Register 1
-        new (it) StackAddition {
-            code: 2,
-            reg: 1,
-            lhs: 0,
-            rhs: 1
-        };
-        it += sizeof(StackAddition);
-        // 1 -> Register 0
-        new (it) StackLoadConstant {
-            code: 1,
-            reg: 0,
-            data: cst.get()
-        };
-        it += sizeof(StackLoadConstant);
-        // Register 0 + 1 -> Register 1
-        new (it) StackAddition {
-            code: 2,
-            reg: 1,
-            lhs: 0,
-            rhs: 1
-        };
-        it += sizeof(StackAddition);
-        // 1 -> Register 0
-        new (it) StackLoadConstant {
-            code: 1,
-            reg: 0,
-            data: cst.get()
-        };
-        it += sizeof(StackLoadConstant);
-        // Register 0 + 1 -> Register 1
-        new (it) StackAddition {
-            code: 2,
-            reg: 1,
-            lhs: 0,
-            rhs: 1
-        };
-        it += sizeof(StackAddition);
-        // 1 -> Register 0
-        new (it) StackLoadConstant {
-            code: 1,
-            reg: 0,
-            data: cst.get()
-        };
-        it += sizeof(StackLoadConstant);
-        // Register 0 + 1 -> Register 1
-        new (it) StackAddition {
-            code: 2,
-            reg: 1,
-            lhs: 0,
-            rhs: 1
-        };
-        it += sizeof(StackAddition);
-        // 1 -> Register 0
-        new (it) StackLoadConstant {
-            code: 1,
-            reg: 0,
-            data: cst.get()
-        };
-        it += sizeof(StackLoadConstant);
-        // Register 0 + 1 -> Register 1
-        new (it) StackAddition {
-            code: 2,
-            reg: 1,
-            lhs: 0,
-            rhs: 1
-        };
-        it += sizeof(StackAddition);
-        // 1 -> Register 0
-        new (it) StackLoadConstant {
-            code: 1,
-            reg: 0,
-            data: cst.get()
-        };
-        it += sizeof(StackLoadConstant);
-        // Register 0 + 1 -> Register 1
-        new (it) StackAddition {
-            code: 2,
-            reg: 1,
-            lhs: 0,
-            rhs: 1
-        };
-        it += sizeof(StackAddition);
-        // 1 -> Register 0
-        new (it) StackLoadConstant {
-            code: 1,
-            reg: 0,
-            data: cst.get()
-        };
-        it += sizeof(StackLoadConstant);
-        // Register 0 + 1 -> Register 1
-        new (it) StackAddition {
-            code: 2,
-            reg: 1,
-            lhs: 0,
-            rhs: 1
-        };
-        it += sizeof(StackAddition);
-        // Return register 2
+        for (auto i = 0; i < addCount; ++i) {
+            new (it) StackLoadConstant {
+                code: 1,
+                reg: 1,
+                data: cst.get()
+            };
+            it += sizeof(StackLoadConstant);
+            new (it) StackAddition {
+                code: 2,
+                reg: 0,
+                lhs: 0,
+                rhs: 1
+            };
+            it += sizeof(StackAddition);
+        }
         new (it) StackReturn {
             code: 3,
-            reg: 1
+            reg: 0
         };
         it += sizeof(StackReturn);
     }
 
     auto processer = std::make_unique<StackProcesser>();
 
-    if (processer->process(res, 10).as<int>() != 10)
+    if (processer->process(res, 10).as<int>() != value * count)
         throw std::logic_error("Stack advanced: code is broken");
     for (auto _ : state) {
         benchmark::DoNotOptimize(processer->process(res, 3));
@@ -742,181 +426,18 @@ static void BenchStackAdvanced(benchmark::State &state)
     std::free(res);
 }
 
-BENCHMARK(BenchStackAdvanced);
+#define REGISTER_STACK_TEST(count) \
+static void BenchStack##count(benchmark::State &state) \
+{ \
+    StackAdditionBenchmarkAdditionGenerator(state, 1, count); \
+} \
+BENCHMARK(BenchStack##count);
 
-
-static void BenchStackAdvancedAlt(benchmark::State &state)
-{
-    kF::Meta::Resolver::Clear();
-    kF::RegisterMetadata();
-
-    auto res = kF::Core::Utils::AlignedAlloc<64, std::byte>(
-        sizeof(StackLoadConstant) * 10 + sizeof(StackAddition) * 9 + sizeof(StackReturn)
-    );
-    auto cst = std::make_unique<kF::Var>(1);
-
-    { // Create an addition: 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1
-        auto it = reinterpret_cast<std::byte *>(res);
-
-        // 1 -> Register 0
-        new (it) StackLoadConstant {
-            code: 1,
-            reg: 0,
-            data: cst.get()
-        };
-        it += sizeof(StackLoadConstant);
-        // 1 -> Register 1
-        new (it) StackLoadConstant {
-            code: 1,
-            reg: 1,
-            data: cst.get()
-        };
-        it += sizeof(StackLoadConstant);
-        // 1 -> Register 2
-        new (it) StackLoadConstant {
-            code: 1,
-            reg: 2,
-            data: cst.get()
-        };
-        it += sizeof(StackLoadConstant);
-        // 1 -> Register 3
-        new (it) StackLoadConstant {
-            code: 1,
-            reg: 3,
-            data: cst.get()
-        };
-        it += sizeof(StackLoadConstant);
-        // 1 -> Register 4
-        new (it) StackLoadConstant {
-            code: 1,
-            reg: 4,
-            data: cst.get()
-        };
-        it += sizeof(StackLoadConstant);
-        // 1 -> Register 5
-        new (it) StackLoadConstant {
-            code: 1,
-            reg: 5,
-            data: cst.get()
-        };
-        it += sizeof(StackLoadConstant);
-        // 1 -> Register 6
-        new (it) StackLoadConstant {
-            code: 1,
-            reg: 6,
-            data: cst.get()
-        };
-        it += sizeof(StackLoadConstant);
-        // 1 -> Register 7
-        new (it) StackLoadConstant {
-            code: 1,
-            reg: 7,
-            data: cst.get()
-        };
-        it += sizeof(StackLoadConstant);
-        // 1 -> Register 8
-        new (it) StackLoadConstant {
-            code: 1,
-            reg: 8,
-            data: cst.get()
-        };
-        it += sizeof(StackLoadConstant);
-        // 1 -> Register 9
-        new (it) StackLoadConstant {
-            code: 1,
-            reg: 9,
-            data: cst.get()
-        };
-        it += sizeof(StackLoadConstant);
-        // Register 0 + 1 -> Register 1
-        new (it) StackAddition {
-            code: 2,
-            reg: 1,
-            lhs: 0,
-            rhs: 1
-        };
-        it += sizeof(StackAddition);
-        // Register 1 + 2 -> Register 2
-        new (it) StackAddition {
-            code: 2,
-            reg: 2,
-            lhs: 1,
-            rhs: 2
-        };
-        it += sizeof(StackAddition);
-        // Register 2 + 3 -> Register 3
-        new (it) StackAddition {
-            code: 2,
-            reg: 3,
-            lhs: 2,
-            rhs: 3
-        };
-        it += sizeof(StackAddition);
-        // Register 3 + 4 -> Register 4
-        new (it) StackAddition {
-            code: 2,
-            reg: 4,
-            lhs: 3,
-            rhs: 4
-        };
-        it += sizeof(StackAddition);
-        // Register 4 + 5 -> Register 5
-        new (it) StackAddition {
-            code: 2,
-            reg: 5,
-            lhs: 4,
-            rhs: 5
-        };
-        it += sizeof(StackAddition);
-        // Register 5 + 6 -> Register 6
-        new (it) StackAddition {
-            code: 2,
-            reg: 6,
-            lhs: 5,
-            rhs: 6
-        };
-        it += sizeof(StackAddition);
-        // Register 6 + 7 -> Register 7
-        new (it) StackAddition {
-            code: 2,
-            reg: 7,
-            lhs: 6,
-            rhs: 7
-        };
-        it += sizeof(StackAddition);
-        // Register 7 + 8 -> Register 8
-        new (it) StackAddition {
-            code: 2,
-            reg: 8,
-            lhs: 7,
-            rhs: 8
-        };
-        it += sizeof(StackAddition);
-        // Register 8 + 9 -> Register 9
-        new (it) StackAddition {
-            code: 2,
-            reg: 9,
-            lhs: 8,
-            rhs: 9
-        };
-        it += sizeof(StackAddition);
-        // Return register 2
-        new (it) StackReturn {
-            code: 3,
-            reg: 9
-        };
-        it += sizeof(StackReturn);
-    }
-
-    auto processer = std::make_unique<StackProcesser>();
-
-    if (processer->process(res, 10).as<int>() != 10)
-        throw std::logic_error("Stack advanced (alt): code is broken");
-    for (auto _ : state) {
-        benchmark::DoNotOptimize(processer->process(res, 10));
-    }
-
-    std::free(res);
-}
-
-BENCHMARK(BenchStackAdvancedAlt);
+REGISTER_STACK_TEST(2)
+REGISTER_STACK_TEST(4)
+REGISTER_STACK_TEST(8)
+REGISTER_STACK_TEST(16)
+REGISTER_STACK_TEST(32)
+REGISTER_STACK_TEST(64)
+REGISTER_STACK_TEST(128)
+REGISTER_STACK_TEST(256)
