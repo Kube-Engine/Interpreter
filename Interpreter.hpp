@@ -25,12 +25,12 @@ public:
         Core::TinySmallString name;
         Core::TinyString path;
         TokenStack stack;
+        // AST tree;
     };
 
     /** @brief Contains data about the current parsing state */
     struct ParseContext
     {
-
     };
 
     static_assert_fit_cacheline(File);
@@ -45,8 +45,12 @@ private:
     Core::TinyVector<std::unique_ptr<File>> _files {};
     Core::TinyVector<FileIndex> _lexingFiles {};
     Core::TinyVector<FileIndex> _parsingFiles {};
-    Core::TinyVector<FileIndex> _compilingFiles {};
+    Core::TinyVector<FileIndex> _instantiatingFiles {};
     kF::Flow::Graph _graph {};
 
-    void onFileLexed(const FileIndex file, TokenStack &&stack);
+    void onFileLexed(const FileIndex file);
+    void onFileParsed(const FileIndex file);
+    void onFileInstantiated(const FileIndex file);
 };
+
+#include "Interpreter.ipp"

@@ -8,6 +8,7 @@
 #include <memory_resource>
 
 #include "Instructions.hpp"
+#include "TokenStack.hpp"
 
 namespace kF::Lang
 {
@@ -44,12 +45,13 @@ public:
     Var operator()(Var *args) const;
 
 private:
-    std::size_t _size; // Used to deallocate 'this' instance
+    std::size_t _size { 0u }; // Used to deallocate 'this' instance
 
     static inline std::pmr::synchronized_pool_resource _Allocator {};
 
     /** @brief Construct an expression so it occupies a given size in bytes */
-    Expression(const std::size_t size) noexcept : _size(size) {}
+    Expression(const std::size_t size) noexcept
+        : _size(size) {}
 
 
     /** @brief Get the internal node data (itself) as raw data */

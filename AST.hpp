@@ -9,6 +9,8 @@
 
 #include <Kube/Core/AllocatedSmallVector.hpp>
 
+#include "Base.hpp"
+
 namespace kF::Lang
 {
     class AST;
@@ -27,14 +29,45 @@ public:
     /** @brief An unique pointer using the custom deleter class */
     using Ptr = std::unique_ptr<AST, Deleter>;
 
+    /** @brief List of child */
+    using Children = Core::AllocatedTinySmallVector<Ptr, 4, &Allocate, &Deallocate>;
+
+
     /** @brief Create a new AST node pointer */
-    template<typename ...Args>
-    [[nodiscard]] Ptr Make(Args &&...args) noexcept_constructible(AST, Args...)
-        { return Ptr(new (Allocate(sizeof(AST), alignof(AST))) AST(std::forward<Args>(args)...)); }
+    [[nodiscard]] Ptr Make(const TokenDescriptor &descriptor) noexcept
+        { return Ptr(new (Allocate(sizeof(AST), alignof(AST))) AST(descriptor)); }
 
 
-    /** @brief Default constructor */
-    AST(void) noexcept = default;
+    /** @brief Destructor */
+    ~AST(void) noexcept = default;
+
+
+    /** @brief Get the token iterator */
+    [[nodiscard]] Token::Iterator token(void) const noexcept { return _desc.token; }
+
+    /** @brief Get the token literal */
+    [[nodiscard]] std::string_view literal(void) const noexcept { return _desc.token.literal(); }
+
+
+    /** @brief Get the token type */
+    [[nodiscard]] TokenType type(void) const noexcept { return _desc.type; }
+
+    /** @brief Get the unary type, valid if the node is of type unary */
+    [[nodiscard]] UnaryType unaryType(void) const noexcept { return _desc.data.unaryType; }
+
+    /** @brief Get the binary type, valid if the node is of type binary */
+    [[nodiscard]] BinaryType binaryType(void) const noexcept { return _desc.data.binaryType; }
+
+    /** @brief Get the assignment type, valid if the node is of type assignment */
+    [[nodiscard]] AssignmentType assignmentType(void) const noexcept { return _desc.data.assignmentType; }
+
+    /** @brief Get the statement type, valid if the node is of type statement */
+    [[nodiscard]] StatementType statementType(void) const noexcept { return _desc.data.statementType; }
+
+
+    /** @brief Get children list */
+    [[nodiscard]] Children &children(void) noexcept { return _children; }
+    [[nodiscard]] const Children &children(void) const noexcept { return _children; }
 
 private:
     /** @brief AST node allocator */
@@ -49,8 +82,11 @@ private:
         { _Pool.deallocate(data, bytes, alignment); }
 
 private:
-    Token *token {};
-    Core::AllocatedTinySmallVector<Ptr, 4, &Allocate, &Deallocate> _children {};
+    TokenDescriptor _desc {};
+    Children _children {};
+
+    /** @brief Default constructor */
+    AST(const TokenDescriptor &descriptor) noexcept : _desc(descriptor) {}
 };
 
 static_assert_fit_cacheline(kF::Lang::AST);

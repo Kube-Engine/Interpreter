@@ -21,7 +21,17 @@ void Lang::Interpreter::process(const std::string_view &path)
 
 }
 
-void Lang::Interpreter::onFileLexed(const FileIndex file, TokenStack &&stack)
+void Lang::Interpreter::onFileLexed(const FileIndex file)
+{
+
+}
+
+void Lang::Interpreter::onFileParsed(const FileIndex file)
+{
+
+}
+
+void Lang::Interpreter::onFileInstantiated(const FileIndex file)
 {
 
 }
