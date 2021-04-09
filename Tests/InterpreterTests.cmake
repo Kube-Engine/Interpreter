@@ -6,6 +6,8 @@ set(KubeInterpreterTestsSources
     ${KubeInterpreterTestsDir}/tests_Interpreter.cpp
     ${KubeInterpreterTestsDir}/tests_TokenStack.cpp
     ${KubeInterpreterTestsDir}/tests_Lexer.cpp
+    ${KubeInterpreterTestsDir}/tests_DirectoryManager.cpp
+    # ${KubeInterpreterTestsDir}/tests_AST.cpp
 )
 
 add_executable(${CMAKE_PROJECT_NAME} ${KubeInterpreterTestsSources})

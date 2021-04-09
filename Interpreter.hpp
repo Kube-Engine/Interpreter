@@ -9,44 +9,41 @@
 #include <Kube/Core/SmallString.hpp>
 #include <Kube/Flow/Graph.hpp>
 
-#include "TokenStack.hpp"
+#include "DirectoryManager.hpp"
 
 namespace kF::Lang
 {
     class Interpreter;
 }
 
+// Forward declaration of the scheduler
+namespace kF::Flow { class Scheduler; }
+
 class kF::Lang::Interpreter
 {
 public:
-    /** @brief File descriptor */
-    struct alignas_cacheline File
-    {
-        Core::TinySmallString name;
-        Core::TinyString path;
-        TokenStack stack;
-    };
+    /** @brief Constructor */
+    Interpreter(Flow::Scheduler * const scheduler);
 
-    /** @brief Contains data about the current parsing state */
-    struct ParseContext
-    {
+    /** @brief Move constructor */
+    Interpreter(Interpreter &&other) = default;
 
-    };
+    /** @brief Destructor */
+    ~Interpreter(void) = default;
 
-    static_assert_fit_cacheline(File);
-
-    /** @brief Process a file */
-    void process(const std::string_view &path);
-
-    /** @brief Process a stream */
-    void process(std::istream &&istream);
+    /** @brief Run the interpreter in blocking mdoe */
+    void run(const std::string_view &path);
 
 private:
-    Core::TinyVector<std::unique_ptr<File>> _files {};
-    Core::TinyVector<FileIndex> _lexingFiles {};
-    Core::TinyVector<FileIndex> _parsingFiles {};
-    Core::TinyVector<FileIndex> _compilingFiles {};
-    kF::Flow::Graph _graph {};
+    DirectoryManager _directoryManager {};
+    Flow::Scheduler *_scheduler { nullptr };
+    Flow::Graph _graph {};
+    Core::TinyVector<std::pair<Flow::StaticFunc, Flow::NotifyFunc>> _toLexer {};
+    Core::TinyVector<std::pair<Flow::StaticFunc, Flow::NotifyFunc>> _toParser {};
 
-    void onFileLexed(const FileIndex file, TokenStack &&stack);
+    /** @brief Process a file */
+    void preprocessFile(const std::string_view &path);
+
+    /** @brief Construct the next graph */
+    [[nodiscard]] bool constructGraph(void);
 };

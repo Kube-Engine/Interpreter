@@ -10,11 +10,20 @@
 
 namespace kF::Lang
 {
+    /** @brief A directory index */
+    using DirectoryIndex = std::uint32_t;
+
+    /** @brief A file index */
     using FileIndex = std::uint16_t;
+
+    /** @brief A file's line index */
     using LineIndex = std::uint16_t;
+
+    /** @brief A file line's column index */
     using ColumnIndex = std::uint16_t;
 
-    struct Token
+    /** @brief A token in a file */
+    struct alignas_eighth_cacheline Token
     {
         FileIndex file { 0u };
         LineIndex line { 0u };
@@ -45,7 +54,8 @@ namespace kF::Lang
         Name,
         Call,
         Emit,
-        Constant
+        Constant,
+        ErrorToken
     };
 
     /** @brief Instruction set of expressions */
