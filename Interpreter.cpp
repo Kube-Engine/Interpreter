@@ -129,7 +129,11 @@ void Lang::Interpreter::preprocessFile(const std::string_view &path)
     });
 }
 
+<<<<<<< HEAD
 bool Lang::Interpreter::constructGraph(void)
+=======
+void Lang::Interpreter::onFileLexed(const FileIndex file)
+>>>>>>> 9aa0487e9517995f30640b65335f4e181ff23aa2
 {
     _graph.clear();
 
@@ -148,4 +152,14 @@ bool Lang::Interpreter::constructGraph(void)
     _toParser.clear();
 
     return true;
+}
+
+void Lang::Interpreter::onFileParsed(const FileIndex file)
+{
+
+}
+
+void Lang::Interpreter::onFileInstantiated(const FileIndex file)
+{
+
 }
