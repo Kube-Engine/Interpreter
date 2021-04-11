@@ -124,16 +124,13 @@ void Lang::Interpreter::preprocessFile(const std::string_view &path)
                 throw std::logic_error(parserWork->error.c_str());
 
             // On file parsed success
-            _directoryManager.fileNode(parserWork->file) = std::move(parserWork->node);
+            auto &node = _directoryManager.fileNode(parserWork->file) = std::move(parserWork->node);
+            node->dump();
         });
     });
 }
 
-<<<<<<< HEAD
 bool Lang::Interpreter::constructGraph(void)
-=======
-void Lang::Interpreter::onFileLexed(const FileIndex file)
->>>>>>> 9aa0487e9517995f30640b65335f4e181ff23aa2
 {
     _graph.clear();
 
@@ -152,14 +149,4 @@ void Lang::Interpreter::onFileLexed(const FileIndex file)
     _toParser.clear();
 
     return true;
-}
-
-void Lang::Interpreter::onFileParsed(const FileIndex file)
-{
-
-}
-
-void Lang::Interpreter::onFileInstantiated(const FileIndex file)
-{
-
 }

@@ -20,11 +20,6 @@ namespace kF::Lang
 class alignas_quarter_cacheline kF::Lang::TokenStack
 {
 public:
-    [[nodiscard]] Token &at(const TokenIndex index) noexcept
-        { return reinterpret_cast<Token &>(_data[index]); }
-    [[nodiscard]] const Token &at(const TokenIndex index) const noexcept
-        { return reinterpret_cast<const Token &>(_data[index]); }
-
     /** @brief Insert a token into the cache */
     void push(const Token token, const char * const string) noexcept;
 

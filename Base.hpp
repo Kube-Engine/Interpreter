@@ -107,25 +107,41 @@ namespace kF::Lang
     /** @brief Command set of contexts (class parsing) */
     enum class TokenType : std::uint32_t {
         None,
-        // Class level
-        Import,
+
+        // Global scope
         Class,
+
+        // Class scope
         Property,
+        Signal,
         Function,
         Event,
         Assignment,
 
-        // Expression level
+        // Declaration scope
+        ParameterList,
         Expression,
+
+        // Expression logic scope
+        Name,
+        List,
+        Local,
+        Type,
+        Statement,
+        TemplateType,
+
+        // Expression operation scope
         UnaryOperator,
         BinaryOperator,
-        Statement,
-        Local,
-        Name,
         Call,
         Emit,
         Constant,
-        ErrorToken
+        LeftParenthesis,
+        RightParenthesis,
+        Coma,
+        TernaryIf,
+        TernaryElse,
+        Dot
     };
 
     /** @brief All types of unary operators */
@@ -167,7 +183,26 @@ namespace kF::Lang
         If,
         While,
         For,
-        Switch
+        Switch,
+        Break,
+        Return
+    };
+
+    /** @brief All types of constants */
+    enum class ConstantType : std::uint32_t {
+        None,
+        Int8,
+        Int16,
+        Int32,
+        Int64,
+        Uint8,
+        Uint16,
+        Uint32,
+        Uint64,
+        Float,
+        Double,
+        Char,
+        Literal
     };
 
     struct alignas_quarter_cacheline TokenDescriptor
@@ -183,55 +218,5 @@ namespace kF::Lang
         Token::Iterator token {};
         TokenType type { TokenType::None };
         Data data { UnaryType::None };
-    };
-
-    /** @brief Instruction set of expressions */
-    enum class InstructionType : std::uint32_t {
-        // Unary operators
-        UnaryMinus,
-
-        // Binary operators
-        BinaryAddition,
-        BinarySubstraction,
-        BinaryMultiplication,
-        BinaryDivision,
-        BinaryModulo,
-
-        // Assignment operators
-        AssignmentAddition,
-        AssignmentSubstraction,
-        AssignmentMultiplication,
-        AssignmentDivision,
-        AssignmentModulo,
-
-        // Variables
-        Local,
-        LValue,
-        RValue,
-        LValueLocal,
-        RValueLocal,
-        Constant,
-
-        // Variable access
-        Access,
-        Derefence,
-        DereferenceAccess,
-
-        // Functions
-        Call,
-
-        // Signals
-        Emit,
-
-        // Properties
-        Get,
-        Set,
-
-        // Statements
-        Branch,
-        Switch,
-        While,
-        For,
-        ForEach
     };
 }

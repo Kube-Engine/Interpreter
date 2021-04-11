@@ -26,25 +26,32 @@ public:
             { ast->~AST(); Deallocate(ast, sizeof(AST), alignof(AST)); }
     };
 
+    /** @brief Data union */
+    using Data = union {
+        UnaryType       unaryType { UnaryType::None };
+        BinaryType      binaryType;
+        AssignmentType  assignmentType;
+        StatementType   statementType;
+        ConstantType    constantType;
+    };
+
     /** @brief An unique pointer using the custom deleter class */
     using Ptr = std::unique_ptr<AST, Deleter>;
 
-<<<<<<< HEAD
-=======
-    /** @brief List of child */
-    using Children = Core::AllocatedTinySmallVector<Ptr, 4, &Allocate, &Deallocate>;
-
->>>>>>> 9aa0487e9517995f30640b65335f4e181ff23aa2
 
     /** @brief Create a new AST node pointer */
-    [[nodiscard]] Ptr Make(const TokenDescriptor &descriptor) noexcept
-        { return Ptr(new (Allocate(sizeof(AST), alignof(AST))) AST(descriptor)); }
+    [[nodiscard]] static inline Ptr Make(const Token *token, const TokenType type) noexcept
+        { return Ptr(new (Allocate(sizeof(AST), alignof(AST))) AST(token, type)); }
+
+    /** @brief Create a new AST node pointer using a data type */
+    template<typename DataType>
+    [[nodiscard]] static inline Ptr Make(const Token *token, const TokenType type, const DataType data) noexcept
+        { return Ptr(new (Allocate(sizeof(AST), alignof(AST))) AST(token, type, data)); }
 
 
     /** @brief Destructor */
     ~AST(void) noexcept = default;
 
-<<<<<<< HEAD
     /** @brief Copy assignment */
     AST &operator=(const AST &other) noexcept = default;
 
@@ -62,35 +69,21 @@ public:
     [[nodiscard]] auto &children(void) noexcept { return _children; }
     [[nodiscard]] const auto &children(void) const noexcept { return _children; }
 
-=======
+    /** @brief Get binary type (unsafe if you don't check token type) */
+    [[nodiscard]] BinaryType binaryType(void) const noexcept { return _data.binaryType; };
 
-    /** @brief Get the token iterator */
-    [[nodiscard]] Token::Iterator token(void) const noexcept { return _desc.token; }
+    /** @brief Get assignment type (unsafe if you don't check token type) */
+    [[nodiscard]] AssignmentType assignmentType(void) const noexcept { return _data.assignmentType; };
 
-    /** @brief Get the token literal */
-    [[nodiscard]] std::string_view literal(void) const noexcept { return _desc.token.literal(); }
+    /** @brief Get statement type (unsafe if you don't check token type) */
+    [[nodiscard]] StatementType statementType(void) const noexcept { return _data.statementType; };
 
-
-    /** @brief Get the token type */
-    [[nodiscard]] TokenType type(void) const noexcept { return _desc.type; }
-
-    /** @brief Get the unary type, valid if the node is of type unary */
-    [[nodiscard]] UnaryType unaryType(void) const noexcept { return _desc.data.unaryType; }
-
-    /** @brief Get the binary type, valid if the node is of type binary */
-    [[nodiscard]] BinaryType binaryType(void) const noexcept { return _desc.data.binaryType; }
-
-    /** @brief Get the assignment type, valid if the node is of type assignment */
-    [[nodiscard]] AssignmentType assignmentType(void) const noexcept { return _desc.data.assignmentType; }
-
-    /** @brief Get the statement type, valid if the node is of type statement */
-    [[nodiscard]] StatementType statementType(void) const noexcept { return _desc.data.statementType; }
+    /** @brief Get constant type (unsafe if you don't check token type) */
+    [[nodiscard]] ConstantType constantType(void) const noexcept { return _data.constantType; };
 
 
-    /** @brief Get children list */
-    [[nodiscard]] Children &children(void) noexcept { return _children; }
-    [[nodiscard]] const Children &children(void) const noexcept { return _children; }
->>>>>>> 9aa0487e9517995f30640b65335f4e181ff23aa2
+    /** @brief Dump the whole tree (debug purposes) */
+    void dump(const std::size_t level = 0u) const noexcept;
 
 private:
     /** @brief AST node allocator */
@@ -105,8 +98,12 @@ private:
         { _Pool.deallocate(data, bytes, alignment); }
 
 
-    /** @brief Default constructor */
+    /** @brief Constructor */
     AST(const Token *token, const TokenType type) noexcept : _token(token), _type(type) {}
+
+    /** @brief Data constructor */
+    template<typename DataType>
+    AST(const Token *token, const TokenType type, const DataType data) noexcept : _token(token), _type(type), _data(data) {}
 
     /** @brief Copy constructor */
     AST(const AST &other) noexcept = default;
@@ -115,17 +112,10 @@ private:
     AST(AST &&other) noexcept = default;
 
 private:
-<<<<<<< HEAD
     const Token *_token;
     TokenType _type;
+    Data _data {};
     Core::AllocatedTinySmallVector<Ptr, 4, &Allocate, &Deallocate> _children {};
-=======
-    TokenDescriptor _desc {};
-    Children _children {};
-
-    /** @brief Default constructor */
-    AST(const TokenDescriptor &descriptor) noexcept : _desc(descriptor) {}
->>>>>>> 9aa0487e9517995f30640b65335f4e181ff23aa2
 };
 
 static_assert_fit_cacheline(kF::Lang::AST);

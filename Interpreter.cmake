@@ -17,6 +17,7 @@ set(KubeInterpreterSources
     ${KubeInterpreterDir}/DirectoryManager.hpp
     ${KubeInterpreterDir}/DirectoryManager.cpp
     ${KubeInterpreterDir}/AST.hpp
+    ${KubeInterpreterDir}/AST.cpp
     ${KubeInterpreterDir}/Interpreter.hpp
     ${KubeInterpreterDir}/Interpreter.cpp
 )
