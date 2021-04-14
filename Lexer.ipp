@@ -16,17 +16,52 @@ inline kF::Lang::Lexer::ProcessState kF::Lang::Lexer::processRegularToken(const 
         endToken();
         return ProcessState::Success;
     } else if (std::isdigit(begin)) {
-        beginToken<false>(begin);
-        for (char elem = peek(); elem; elem = peek()) {
-            if (std::isdigit(elem) || elem == '.' || elem == '\'') [[likely]]
-                feedToken<false>(elem);
-            else [[unlikely]]
-                break;
-        }
-        endToken();
-        return ProcessState::Success;
+        return processNumeric(begin);
     } else
         return ProcessState::NotRecognized;
+}
+
+inline kF::Lang::Lexer::ProcessState kF::Lang::Lexer::processNumeric(const char begin) noexcept
+{
+    bool dot = false;
+    char elem;
+
+    // Process numeric
+    beginToken<false>(begin);
+    for (elem = peek(); elem; elem = peek()) {
+        if (elem == '.') [[unlikely]] {
+            if (dot)
+                return ProcessState::NotRecognized;
+            dot = true;
+        } else if (!std::isdigit(elem))
+            break;
+        feedToken<false>(elem);
+    }
+
+    // Process suffix
+    switch (elem) {
+    case 'u':
+        if (peekNext() == 'l') {
+            feedToken<false>(elem);
+            elem = peek();
+        }
+        break;
+    case 'l':
+        if (const char next = peekNext(); next == 'l' || next == 'd') {
+            feedToken<false>(elem);
+            elem = peek();
+        }
+        break;
+    case 's':
+    case 'd':
+        break;
+    default:
+        endToken();
+        return ProcessState::Success;
+    }
+    feedToken<false>(elem);
+    endToken();
+    return ProcessState::Success;
 }
 
 inline kF::Lang::Lexer::ProcessState kF::Lang::Lexer::processSpecialToken(const char begin) noexcept
@@ -44,6 +79,7 @@ inline kF::Lang::Lexer::ProcessState kF::Lang::Lexer::processSpecialToken(const 
     case ',':
     case ';':
     case '.':
+    case '~':
         pushSingleCharToken(begin);
         return ProcessState::Success;
     // Composed operators with '='
@@ -54,11 +90,15 @@ inline kF::Lang::Lexer::ProcessState kF::Lang::Lexer::processSpecialToken(const 
     case '*':
     case '/':
     case '%':
+    case '^':
         processComposedSpecialToken<'='>(begin);
         return ProcessState::Success;
     // Custom composed operators
     case '|':
         processComposedSpecialToken<'|', '='>(begin);
+        return ProcessState::Success;
+    case '&':
+        processComposedSpecialToken<'&', '='>(begin);
         return ProcessState::Success;
     case '+':
         processComposedSpecialToken<'+', '='>(begin);

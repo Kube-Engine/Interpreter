@@ -55,6 +55,11 @@ private:
      */
     [[nodiscard]] ProcessState processRegularToken(const char begin) noexcept;
 
+    /** @brief Process a numeric token
+     *  The function keep lexer's position after the last character captured */
+    [[nodiscard]] ProcessState processNumeric(const char begin) noexcept;
+
+
     /** @brief Process special tokens such as operators or comments
      *  The function keep lexer's position after the last character captured
     */

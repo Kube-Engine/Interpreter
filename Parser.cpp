@@ -176,7 +176,6 @@ void Lang::Parser::processProperty(void)
 void Lang::Parser::processEvent(void)
 {
     static const char *UnexpectedEndOfFile = "Lang::Parser::processEvent: Unexpected end of file in event declaration\n";
-    static const char *UnexpectedToken = "Lang::Parser::processEvent: Unexpected token in event declaration\n";
 
     const auto rootIt = _it;
     auto &rootNode = insertNode<TokenType::Event>(rootIt);
@@ -244,7 +243,6 @@ void Lang::Parser::processParameterList(AST &parent)
 void Lang::Parser::processExpression(AST &parent, const std::string_view &terminate)
 {
     static const char *UnexpectedEndOfFile = "Lang::Parser::processExpression: Unexpected end of file in expression\n";
-    static const char *UnexpectedToken = "Lang::Parser::processExpression: Unexpected token in expression\n";
 
     const auto rootIt = _it;
     auto &rootNode = insertNode<TokenType::Expression>(parent, rootIt);
@@ -467,39 +465,33 @@ void kF::Lang::Parser::processLocal(AST &parent)
 void kF::Lang::Parser::processOperation(AST &parent, const std::string_view &terminate)
 {
     static const char *UnexpectedEndOfFile = "Lang::Parser::processOperation: Unexpected end of file in operation\n";
-    static const char *UnexpectedToken = "Lang::Parser::processOperation: Unexpected token in operation\n";
 
     const auto rootIt = _it;
 
     while (_it != _end) {
         const auto literal = _it.literal();
         if (literal != terminate) [[likely]] {
-            processOperationToken();
+            processOperationToken(literal);
         } else {
-            buildOperation(parent, rootIt);
             ++_it;
+            if (_operationStack.empty())
+                throw std::logic_error("Lang::Parser::processOperation: Invalid empty operation\n" + getTokenError(rootIt));
+            parent.children().push(buildOperation());
             return;
         }
     }
-    if (_it == _end) [[unlikely]]
-        throw std::logic_error(UnexpectedEndOfFile + getTokenError(rootIt));
+    throw std::logic_error(UnexpectedEndOfFile + getTokenError(rootIt));
 }
 
-void kF::Lang::Parser::processOperationToken(void)
+void kF::Lang::Parser::processOperationToken(const std::string_view &literal)
 {
-    const auto literal = _it.literal();
     OperationNode operationNode {
         token: &*_it
     };
 
-    if (literal == "(")
-        operationNode.type = TokenType::LeftParenthesis;
-    else if (literal == ")")
-        operationNode.type = TokenType::RightParenthesis;
-    else if (tryProcessOperator(literal, operationNode)) {
-    } else if (IsName(literal))
+    if (IsName(literal))
         operationNode.type = TokenType::Name;
-    else
+    else if (!tryProcessOperator(literal, operationNode) && !tryProcessConstant(literal, operationNode))
         throw std::logic_error("Lang::Parser::processOperationToken: Unexpected token in operation\n" + getTokenError(_it));
     _operationStack.push(operationNode);
     ++_it;
@@ -507,52 +499,315 @@ void kF::Lang::Parser::processOperationToken(void)
 
 bool kF::Lang::Parser::tryProcessOperator(const std::string_view &literal, OperationNode &operationNode)
 {
-    if (literal.empty())
-        return false;
-    return true;
-    // switch (literal.front()) {
-    // case '?':
-    // case ':':
-    // case ',':
-    // case '.':
-    // // Composed operators with '='
-    // case '=':
-    // case '<':
-    // case '>':
-    // case '!':
-    // case '*':
-    // case '/':
-    // case '%':
-    //     processComposedSpecialToken<'='>(begin);
-    //     return ProcessState::Success;
-    // // Custom composed operators
-    // case '|':
-    //     processComposedSpecialToken<'|', '='>(begin);
-    //     return ProcessState::Success;
-    // case '+':
-    //     processComposedSpecialToken<'+', '='>(begin);
-    //     return ProcessState::Success;
-    // case '-':
-    //     processComposedSpecialToken<'-', '='>(begin);
-    //     return ProcessState::Success;
-    // // Custom cases
+    constexpr auto IsNext = [](const std::string_view &literal, const char next) {
+        return literal.size() == 2 && literal[1] == next;
+    };
 
-    // case '"':
-    //     if (parseString()) [[likely]]
-    //         return ProcessState::Success;
-    //     else [[unlikely]]
-    //         return ProcessState::Error;
-    // case '\'':
-    //     if (parseCharacter()) [[likely]]
-    //         return ProcessState::Success;
-    //     else [[unlikely]]
-    //         return ProcessState::Error;
-    // default:
-    //     return ProcessState::NotRecognized;
-    // }
+    if (literal.empty()) [[unlikely]]
+        return false;
+    switch (literal.front()) {
+    case '(':
+        operationNode.type = TokenType::LeftParenthesis;
+        return true;
+    case ')':
+        operationNode.type = TokenType::RightParenthesis;
+        return true;
+    case '?':
+        operationNode.type = TokenType::Operator;
+        operationNode.data.operatorType = OperatorType::TernaryIf;
+        return true;
+    case ':':
+        operationNode.type = TokenType::Operator;
+        operationNode.data.operatorType = OperatorType::TernaryElse;
+        return true;
+    case ',':
+        operationNode.type = TokenType::Operator;
+        operationNode.data.operatorType = OperatorType::Coma;
+        return true;
+    case '.':
+        operationNode.type = TokenType::Operator;
+        operationNode.data.operatorType = OperatorType::Dot;
+        return true;
+    case '=':
+        operationNode.type = TokenType::Operator;
+        operationNode.data.operatorType = IsNext(literal, '=') ? OperatorType::Equal : OperatorType::Assign;
+        return true;
+    case '<':
+        operationNode.type = TokenType::Operator;
+        operationNode.data.operatorType = IsNext(literal, '=') ? OperatorType::LighterEqual : OperatorType::Lighter;
+        return true;
+    case '>':
+        operationNode.type = TokenType::Operator;
+        operationNode.data.operatorType = IsNext(literal, '=') ? OperatorType::GreaterEqual : OperatorType::Greater;
+        return true;
+    case '!':
+        operationNode.type = TokenType::Operator;
+        operationNode.data.operatorType = IsNext(literal, '=') ? OperatorType::Different : OperatorType::Not;
+        return true;
+    case '&':
+        operationNode.type = TokenType::Operator;
+        operationNode.data.operatorType = IsNext(literal, '&') ? OperatorType::And : IsNext(literal, '=') ? OperatorType::BitAndAssign : OperatorType::BitAnd;
+        return true;
+    case '|':
+        operationNode.type = TokenType::Operator;
+        operationNode.data.operatorType = IsNext(literal, '|') ? OperatorType::Or : IsNext(literal, '=') ? OperatorType::BitOrAssign : OperatorType::BitOr;
+        return true;
+    case '^':
+        operationNode.type = TokenType::Operator;
+        operationNode.data.operatorType = IsNext(literal, '=') ? OperatorType::BitXorAssign : OperatorType::BitXor;
+        return true;
+    case '+':
+        operationNode.type = TokenType::Operator;
+        operationNode.data.operatorType = IsNext(literal, '+') ? OperatorType::Increment : IsNext(literal, '=') ? OperatorType::AdditionAssign : OperatorType::Addition;
+        return true;
+    case '-':
+        operationNode.type = TokenType::Operator;
+        operationNode.data.operatorType = IsNext(literal, '-') ? OperatorType::Decrement : IsNext(literal, '=') ? OperatorType::SubstractionAssign : OperatorType::Substraction;
+        return true;
+    case '*':
+        operationNode.type = TokenType::Operator;
+        operationNode.data.operatorType = IsNext(literal, '=') ? OperatorType::MultiplicationAssign : OperatorType::Multiplication;
+        return true;
+    case '/':
+        operationNode.type = TokenType::Operator;
+        operationNode.data.operatorType = IsNext(literal, '=') ? OperatorType::DivisionAssign : OperatorType::Division;
+        return true;
+    case '%':
+        operationNode.type = TokenType::Operator;
+        operationNode.data.operatorType = IsNext(literal, '=') ? OperatorType::ModuloAssign : OperatorType::Modulo;
+        return true;
+    default:
+        return false;
+    }
 }
 
-void kF::Lang::Parser::buildOperation(AST &parent, const Token::Iterator rootIt)
+bool kF::Lang::Parser::tryProcessConstant(const std::string_view &literal, OperationNode &operationNode)
 {
+    if (literal.empty()) [[unlikely]]
+        return false;
+    if (std::isdigit(literal.front())) {
+        operationNode.type = TokenType::Constant;
+        operationNode.data.constantType = ConstantType::Numeric;
+    } else if (literal.front() == '"') {
+        operationNode.type = TokenType::Constant;
+        operationNode.data.constantType = ConstantType::Literal;
+    } else if (literal.front() == '\'') {
+        operationNode.type = TokenType::Constant;
+        operationNode.data.constantType = ConstantType::Char;
+    } else
+        return false;
+    return true;
+}
 
+kF::Lang::AST::Ptr kF::Lang::Parser::buildOperation(void)
+{
+    auto rootNode = buildOperator(buildOperand(), 0u);
+
+    _operationStack.clear();
+    _operationIndex = 0u;
+    _openedParenthesis = 0u;
+    return rootNode;
+}
+
+kF::Lang::AST::Ptr kF::Lang::Parser::buildOperator(AST::Ptr lhs, const std::size_t minPrecedence)
+{
+    constexpr auto GetPrecedence = [](const OperatorType type) -> std::size_t {
+        switch (type) {
+        // Unary
+        case OperatorType::Not:
+        case OperatorType::Minus:
+        case OperatorType::BitReverse:
+        case OperatorType::Increment:
+        case OperatorType::Decrement:           return 14;
+        case OperatorType::IncrementSuffix:
+        case OperatorType::DecrementSuffix:     return 15;
+        // Binary
+        case OperatorType::Addition:
+        case OperatorType::Substraction:        return 11;
+        case OperatorType::Multiplication:
+        case OperatorType::Division:
+        case OperatorType::Modulo:              return 12;
+        case OperatorType::Equal:
+        case OperatorType::Different:           return 7;
+        case OperatorType::Greater:
+        case OperatorType::GreaterEqual:
+        case OperatorType::Lighter:
+        case OperatorType::LighterEqual:        return 8;
+        case OperatorType::And:                 return 3;
+        case OperatorType::Or:                  return 2;
+        case OperatorType::BitAnd:              return 6;
+        case OperatorType::BitOr:               return 4;
+        case OperatorType::BitXor:              return 5;
+        case OperatorType::Assign:
+        case OperatorType::AdditionAssign:
+        case OperatorType::SubstractionAssign:
+        case OperatorType::MultiplicationAssign:
+        case OperatorType::DivisionAssign:
+        case OperatorType::ModuloAssign:
+        case OperatorType::BitAndAssign:
+        case OperatorType::BitOrAssign:
+        case OperatorType::BitXorAssign:        return 1;
+        case OperatorType::Coma:                return 0;
+        case OperatorType::Dot:                 return 15;
+        // Terciary
+        case OperatorType::TernaryIf:
+        case OperatorType::TernaryElse:         return 1;
+        default:
+            return 0;
+        }
+    };
+    constexpr auto GetAssociativity = [](const OperatorType type) -> AssociativityType {
+        switch (type) {
+        case OperatorType::Increment:
+        case OperatorType::Decrement:
+        case OperatorType::Assign:
+        case OperatorType::AdditionAssign:
+        case OperatorType::SubstractionAssign:
+        case OperatorType::MultiplicationAssign:
+        case OperatorType::DivisionAssign:
+        case OperatorType::ModuloAssign:
+        case OperatorType::BitAndAssign:
+        case OperatorType::BitOrAssign:
+        case OperatorType::BitXorAssign:
+        case OperatorType::TernaryIf:
+        case OperatorType::TernaryElse:
+            return AssociativityType::RightToLeft;
+        default:
+            return AssociativityType::LeftToRight;
+        }
+    };
+    static const char *UnexpectedToken = "Lang::Parser::buildOperator: Unexpected token in operation\n";
+
+    while (true) {
+        if (_operationIndex == _operationStack.size())
+            break;
+        auto &op = _operationStack[_operationIndex];
+        switch (op.type) {
+        case TokenType::LeftParenthesis:
+            // todo call
+            break;
+        case TokenType::RightParenthesis:
+            if (!_openedParenthesis)
+                throw std::logic_error(UnexpectedToken + getTokenError(*op.token));
+            --_openedParenthesis;
+            ++_operationIndex;
+            return lhs;
+        case TokenType::Operator:
+            switch (op.data.operatorType) {
+            case OperatorType::Increment:
+            {
+                auto rootNode = AST::Make(op.token, TokenType::Operator, OperatorType::IncrementSuffix);
+                rootNode->children().push(std::move(lhs));
+                lhs = std::move(rootNode);
+                ++_operationIndex;
+                continue;
+            }
+            case OperatorType::Decrement:
+            {
+                auto rootNode = AST::Make(op.token, TokenType::Operator, OperatorType::DecrementSuffix);
+                rootNode->children().push(std::move(lhs));
+                lhs = std::move(rootNode);
+                ++_operationIndex;
+                continue;
+            }
+            case OperatorType::Addition:
+            case OperatorType::Substraction:
+            case OperatorType::Multiplication:
+            case OperatorType::Division:
+            case OperatorType::Modulo:
+            case OperatorType::Equal:
+            case OperatorType::Different:
+            case OperatorType::Greater:
+            case OperatorType::GreaterEqual:
+            case OperatorType::Lighter:
+            case OperatorType::LighterEqual:
+            case OperatorType::And:
+            case OperatorType::Or:
+            case OperatorType::BitAnd:
+            case OperatorType::BitOr:
+            case OperatorType::BitXor:
+            case OperatorType::Assign:
+            case OperatorType::AdditionAssign:
+            case OperatorType::SubstractionAssign:
+            case OperatorType::MultiplicationAssign:
+            case OperatorType::DivisionAssign:
+            case OperatorType::ModuloAssign:
+            case OperatorType::BitAndAssign:
+            case OperatorType::BitOrAssign:
+            case OperatorType::BitXorAssign:
+            case OperatorType::Coma:
+            case OperatorType::Dot:
+            {
+                const auto precedence = GetPrecedence(op.data.operatorType);
+                if (precedence < minPrecedence)
+                    break;
+                const auto associativity = GetAssociativity(op.data.operatorType);
+                ++_operationIndex;
+                auto rhs = buildOperator(buildOperand(), precedence + (associativity == AssociativityType::LeftToRight));
+                auto rootNode = AST::Make(op.token, TokenType::Operator, op.data.operatorType);
+                rootNode->children().push(std::move(lhs));
+                rootNode->children().push(std::move(rhs));
+                lhs = std::move(rootNode);
+                continue;
+            }
+            default:
+                throw std::logic_error(UnexpectedToken + getTokenError(*op.token));
+            }
+        default:
+            throw std::logic_error(UnexpectedToken + getTokenError(*op.token));
+        }
+        break;
+    }
+    return lhs;
+}
+
+kF::Lang::AST::Ptr kF::Lang::Parser::buildOperand(void)
+{
+    static const char *UnexpectedToken = "Lang::Parser::buildOperand: Unexpected token in operation\n";
+    static const char *MissingOperand = "Lang::Parser::buildOperand: Invalid operation, missing operand\n";
+
+    if (_operationIndex == _operationStack.size()) [[unlikely]]
+        throw std::logic_error(MissingOperand + getTokenError(*_operationStack[_operationIndex - 1].token));
+
+    auto &op = _operationStack[_operationIndex];
+
+    ++_operationIndex;
+    switch (op.type) {
+    case TokenType::Name:
+    {
+        auto node = AST::Make(op.token, TokenType::Name, op.data);
+        // if (_operationIndex != _operationStack.size() && _operationStack[_operationIndex].type == TokenType::Operator
+        //         && _operationStack[_operationIndex].data.operatorType == OperatorType::Dot)
+        //     node = buildComposedName(std::move(node));
+        return node;
+    }
+    case TokenType::Constant:
+        return AST::Make(op.token, TokenType::Constant, op.data);
+    case TokenType::Operator:
+        switch (op.data.operatorType) {
+        case OperatorType::Not:
+        case OperatorType::Minus:
+        case OperatorType::BitReverse:
+        case OperatorType::Increment:
+        case OperatorType::Decrement:
+        {
+            auto rootNode = AST::Make(op.token, TokenType::Operator, op.data);
+            rootNode->children().push(buildOperand());
+            return rootNode;
+        }
+        case OperatorType::Substraction:
+        {
+            auto rootNode = AST::Make(op.token, TokenType::Operator, OperatorType::Minus);
+            rootNode->children().push(buildOperand());
+            return rootNode;
+        }
+        default:
+            throw std::logic_error(UnexpectedToken + getTokenError(*op.token));
+        }
+    case TokenType::LeftParenthesis:
+        ++_openedParenthesis;
+        return buildOperator(buildOperand(), 0);
+    default:
+        throw std::logic_error(UnexpectedToken + getTokenError(*op.token));
+    }
 }

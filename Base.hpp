@@ -122,37 +122,34 @@ namespace kF::Lang
         ParameterList,
         Expression,
 
-        // Expression logic scope
-        Name,
+        // Expression scope
         List,
         Local,
         Type,
         Statement,
         TemplateType,
-
-        // Expression operation scope
-        UnaryOperator,
-        BinaryOperator,
+        Operator,
+        Name,
         Call,
-        Emit,
         Constant,
         LeftParenthesis,
-        RightParenthesis,
-        Coma,
-        TernaryIf,
-        TernaryElse,
-        Dot
+        RightParenthesis
     };
 
-    /** @brief All types of unary operators */
-    enum class UnaryType : std::uint32_t {
+    /** @brief All types of operators */
+    enum class OperatorType : std::uint32_t {
         None,
-        Minus
-    };
 
-    /** @brief All types of binary operators */
-    enum class BinaryType : std::uint32_t {
-        None,
+        // Unary
+        Not,
+        Minus,
+        BitReverse,
+        Increment,
+        Decrement,
+        IncrementSuffix,
+        DecrementSuffix,
+
+        // Binary
         Addition,
         Substraction,
         Multiplication,
@@ -163,19 +160,44 @@ namespace kF::Lang
         Greater,
         GreaterEqual,
         Lighter,
-        LighterEqual
+        LighterEqual,
+        And,
+        Or,
+        BitAnd,
+        BitOr,
+        BitXor,
+        Assign,
+        AdditionAssign,
+        SubstractionAssign,
+        MultiplicationAssign,
+        DivisionAssign,
+        ModuloAssign,
+        BitAndAssign,
+        BitOrAssign,
+        BitXorAssign,
+        Coma,
+        Dot,
+
+        // Terciary
+        TernaryIf,
+        TernaryElse
     };
 
-    /** @brief All types of assignment operators */
-    enum class AssignmentType : std::uint32_t {
-        None,
-        Assign,
-        Addition,
-        Substraction,
-        Multiplication,
-        Division,
-        Modulo
-    };
+    /** @brief Check if an operator is unary */
+    [[nodiscard]] inline bool IsUnary(const OperatorType type) noexcept
+    { return static_cast<std::uint32_t>(type) >= static_cast<std::uint32_t>(OperatorType::Not) &&
+            static_cast<std::uint32_t>(type) <= static_cast<std::uint32_t>(OperatorType::DecrementSuffix); }
+
+    /** @brief Check if an operator is binary */
+    [[nodiscard]] inline bool IsBinary(const OperatorType type) noexcept
+    { return static_cast<std::uint32_t>(type) >= static_cast<std::uint32_t>(OperatorType::Addition) &&
+            static_cast<std::uint32_t>(type) <= static_cast<std::uint32_t>(OperatorType::Dot); }
+
+    /** @brief Check if an operator is terciary */
+    [[nodiscard]] inline bool IsTerciary(const OperatorType type) noexcept
+    { return static_cast<std::uint32_t>(type) >= static_cast<std::uint32_t>(OperatorType::TernaryIf) &&
+            static_cast<std::uint32_t>(type) <= static_cast<std::uint32_t>(OperatorType::TernaryElse); }
+
 
     /** @brief All types of statement operators */
     enum class StatementType : std::uint32_t {
@@ -185,22 +207,15 @@ namespace kF::Lang
         For,
         Switch,
         Break,
-        Return
+        Continue,
+        Return,
+        Emit
     };
 
     /** @brief All types of constants */
     enum class ConstantType : std::uint32_t {
         None,
-        Int8,
-        Int16,
-        Int32,
-        Int64,
-        Uint8,
-        Uint16,
-        Uint32,
-        Uint64,
-        Float,
-        Double,
+        Numeric,
         Char,
         Literal
     };
@@ -209,14 +224,18 @@ namespace kF::Lang
     {
         using Data = union
         {
-            UnaryType unaryType;
-            BinaryType binaryType;
-            AssignmentType assignmentType;
+            OperatorType operatorType;
             StatementType statementType;
         };
 
         Token::Iterator token {};
         TokenType type { TokenType::None };
-        Data data { UnaryType::None };
+        Data data { OperatorType::None };
+    };
+
+    /** @brief All types of operator associativity */
+    enum class AssociativityType {
+        LeftToRight,
+        RightToLeft
     };
 }

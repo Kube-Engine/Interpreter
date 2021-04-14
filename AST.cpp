@@ -34,7 +34,7 @@ void Lang::AST::dump(const std::size_t level) const noexcept
         children()[0]->dump(level);
         std::cout << ": ";
         children()[1]->dump(level);
-        std::cout << std::endl;
+        std::cout << ';' << std::endl;
         break;
     case TokenType::Signal:
         std::cout << "signal " << _token->literal();
@@ -46,19 +46,19 @@ void Lang::AST::dump(const std::size_t level) const noexcept
         children()[0]->dump(level);
         std::cout << " ";
         children()[1]->dump(level);
-        std::cout << std::endl;
+        std::cout << ';' << std::endl;
         break;
     case TokenType::Event:
         std::cout << "on ";
         children()[0]->dump(level);
         std::cout << ": ";
         children()[1]->dump(level);
-        std::cout << std::endl;
+        std::cout << ';' << std::endl;
         break;
     case TokenType::Assignment:
         std::cout << _token->literal() << ": ";
         children()[0]->dump(level);
-        std::cout << std::endl;
+        std::cout << ';' << std::endl;
         break;
     case TokenType::ParameterList:
         std::cout << "(";
@@ -81,7 +81,7 @@ void Lang::AST::dump(const std::size_t level) const noexcept
             for (const auto &child : children()) {
                 Tabify(level + 1);
                 child->dump(level + 1);
-                std::cout << std::endl;
+                std::cout << ';' << std::endl;
             }
             Tabify(level);
             std::cout << '}';
@@ -131,12 +131,12 @@ void Lang::AST::dump(const std::size_t level) const noexcept
                         children()[i]->dump(level);
                             std::cout << ") ";
                         children()[i + 1]->dump(level);
-                        std::cout << std::endl;
+                        std::cout << ';' << std::endl;
                         i += 2;
                     } else {
                         std::cout << "else ";
                         children()[i]->dump(level);
-                        std::cout << std::endl;
+                        std::cout << ';' << std::endl;
                         ++i;
                     }
                 }
@@ -158,7 +158,7 @@ void Lang::AST::dump(const std::size_t level) const noexcept
             children()[2]->dump(level);
             std::cout << ") ";
             children()[3]->dump(level);
-            std::cout << std::endl;
+            std::cout << ';' << std::endl;
             break;
         case StatementType::Switch:
             std::cout << "switch (";
@@ -172,12 +172,12 @@ void Lang::AST::dump(const std::size_t level) const noexcept
                     std::cout << ":" << std::endl;
                     Tabify(level + 1);
                     children()[i + 1]->dump(level + 1);
-                    std::cout << std::endl;
+                    std::cout << ';' << std::endl;
                 } else {
                     std::cout << "default:" << std::endl;
                     Tabify(level + 1);
                     children()[i]->dump(level + 1);
-                    std::cout << std::endl;
+                    std::cout << ';' << std::endl;
                 }
             }
             break;
@@ -197,20 +197,35 @@ void Lang::AST::dump(const std::size_t level) const noexcept
         }
         std::cout << '>';
         break;
-    case TokenType::UnaryOperator:
-        std::cout << "UnaryOperator" << std::endl;
-        break;
-    case TokenType::BinaryOperator:
-        std::cout << "BinaryOperator" << std::endl;
+    case TokenType::Operator:
+        std::cout << '(';
+        if (IsUnary(operatorType())) {
+            if (operatorType() == OperatorType::IncrementSuffix || operatorType() == OperatorType::DecrementSuffix) {
+                children()[0]->dump();
+                std::cout << _token->literal();
+            } else {
+                std::cout << _token->literal();
+                children()[0]->dump();
+            }
+        } else if (IsBinary(operatorType())) {
+                children()[0]->dump();
+                std::cout << " " << _token->literal() << " ";
+                children()[1]->dump();
+        } else if (IsTerciary(operatorType())) {
+                children()[0]->dump();
+                std::cout << " " << _token->literal() << " ";
+                children()[1]->dump();
+                std::cout << " : ";
+                children()[2]->dump();
+        } else
+            std::cout << "UNKNOWN OPERATOR";
+        std::cout << ')';
         break;
     case TokenType::Call:
         std::cout << "Call" << std::endl;
         break;
-    case TokenType::Emit:
-        std::cout << "Emit" << std::endl;
-        break;
     case TokenType::Constant:
-        std::cout << "Constant" << std::endl;
+        std::cout << _token->literal();
         break;
     default:
         std::cout << "UNKNOWN TOKEN" << std::endl;

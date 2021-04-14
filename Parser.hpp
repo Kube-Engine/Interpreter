@@ -48,6 +48,8 @@ private:
     std::string_view _context {};
     Core::TinyVector<Core::TinyString> _imports {};
     Core::TinyVector<OperationNode> _operationStack {};
+    std::uint32_t _operationIndex { 0u };
+    std::uint32_t _openedParenthesis { 0u };
     FileIndex _file {};
 
     /** @brief Prepare the instance for the next process */
@@ -111,13 +113,22 @@ private:
     void processOperation(AST &parent, const std::string_view &terminate);
 
     /** @brief Process a single token from an operation */
-    void processOperationToken(void);
+    void processOperationToken(const std::string_view &literal);
 
     /** @brief Try to process an operator token from an operation */
     [[nodiscard]] bool tryProcessOperator(const std::string_view &literal, OperationNode &operationNode);
 
+    /** @brief Try to process a constant token from an operation */
+    [[nodiscard]] bool tryProcessConstant(const std::string_view &literal, OperationNode &operationNode);
+
     /** @brief Build an operation */
-    void buildOperation(AST &parent, const Token::Iterator rootIt);
+    [[nodiscard]] AST::Ptr buildOperation(void);
+
+    /** @brief Build an operator */
+    [[nodiscard]] AST::Ptr buildOperator(AST::Ptr lhs, const std::size_t minPrecedence);
+
+    /** @brief Build an operand */
+    [[nodiscard]] AST::Ptr buildOperand(void);
 
 
     /** @brief Insert a node in higher process node */
@@ -133,9 +144,11 @@ private:
     AST &insertNode(AST &parent, const Token::Iterator it) noexcept;
 
 
-    /** @brief Return a well formated error from a token iterator */
+    /** @brief Return a well formated error from a token */
     [[nodiscard]] std::string getTokenError(const Token::Iterator it) const noexcept
-        { return "At symbol '" + std::string(it.literal()) + "' from " + std::string(_context) + ":l" + std::to_string(it->line) + ":c" + std::to_string(it->column);  }
+        { return getTokenError(*it); }
+    [[nodiscard]] std::string getTokenError(const Token &token) const noexcept
+        { return "At symbol '" + std::string(token.literal()) + "' from " + std::string(_context) + ":l" + std::to_string(token.line) + ":c" + std::to_string(token.column);  }
 
 
     /** @brief Check if a token is a valid literal */

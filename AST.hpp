@@ -28,9 +28,7 @@ public:
 
     /** @brief Data union */
     using Data = union {
-        UnaryType       unaryType { UnaryType::None };
-        BinaryType      binaryType;
-        AssignmentType  assignmentType;
+        OperatorType    operatorType { OperatorType::None };
         StatementType   statementType;
         ConstantType    constantType;
     };
@@ -70,10 +68,7 @@ public:
     [[nodiscard]] const auto &children(void) const noexcept { return _children; }
 
     /** @brief Get binary type (unsafe if you don't check token type) */
-    [[nodiscard]] BinaryType binaryType(void) const noexcept { return _data.binaryType; };
-
-    /** @brief Get assignment type (unsafe if you don't check token type) */
-    [[nodiscard]] AssignmentType assignmentType(void) const noexcept { return _data.assignmentType; };
+    [[nodiscard]] OperatorType operatorType(void) const noexcept { return _data.operatorType; };
 
     /** @brief Get statement type (unsafe if you don't check token type) */
     [[nodiscard]] StatementType statementType(void) const noexcept { return _data.statementType; };
@@ -103,7 +98,25 @@ private:
 
     /** @brief Data constructor */
     template<typename DataType>
-    AST(const Token *token, const TokenType type, const DataType data) noexcept : _token(token), _type(type), _data(data) {}
+    AST(const Token *token, const TokenType type, const DataType data) noexcept : _token(token), _type(type)
+    {
+        static_assert(
+            std::is_same_v<Data, DataType> ||
+            std::is_same_v<OperatorType, DataType> ||
+            std::is_same_v<StatementType, DataType> ||
+            std::is_same_v<ConstantType, DataType>,
+            "An AST token must have a valid data field"
+        );
+
+        if constexpr (std::is_same_v<OperatorType, DataType>)
+            _data.operatorType = data;
+        else if constexpr (std::is_same_v<StatementType, DataType>)
+            _data.statementType = data;
+        else if constexpr (std::is_same_v<ConstantType, DataType>)
+            _data.constantType = data;
+        else
+            _data = data;
+    }
 
     /** @brief Copy constructor */
     AST(const AST &other) noexcept = default;
