@@ -153,7 +153,6 @@ void Lang::Parser::processProperty(void)
     static const char *UnexpectedToken = "Lang::Parser::processProperty: Unexpected token in property declaration\n";
 
     const auto rootIt = _it;
-    auto &rootNode = insertNode<TokenType::Property>(rootIt);
 
     if (++_it == _end) [[unlikely]]
         throw std::logic_error(UnexpectedEndOfFile + getTokenError(rootIt));
@@ -167,6 +166,7 @@ void Lang::Parser::processProperty(void)
         throw std::logic_error(UnexpectedToken + getTokenError(nameIt));
     else if (++_it == _end) [[unlikely]]
         throw std::logic_error(UnexpectedEndOfFile + getTokenError(nameIt));
+    auto &rootNode = insertNode<TokenType::Property>(nameIt);
     if (_it.literal() == "{")
         processExpression(rootNode, "}");
     else
@@ -176,13 +176,22 @@ void Lang::Parser::processProperty(void)
 void Lang::Parser::processEvent(void)
 {
     static const char *UnexpectedEndOfFile = "Lang::Parser::processEvent: Unexpected end of file in event declaration\n";
+    static const char *UnexpectedToken = "Lang::Parser::processEvent: Unexpected token in event declaration\n";
 
     const auto rootIt = _it;
     auto &rootNode = insertNode<TokenType::Event>(rootIt);
 
     if (++_it == _end) [[unlikely]]
         throw std::logic_error(UnexpectedEndOfFile + getTokenError(rootIt));
-    processExpression(rootNode, ":");
+    if (const auto literal = _it.literal(); literal == "{") {
+        processExpression(rootNode, "}");
+        if (_it == _end)
+            throw std::logic_error(UnexpectedEndOfFile + getTokenError(rootIt));
+        else if (_it.literal() != ":")
+            throw std::logic_error(UnexpectedToken + getTokenError(rootIt));
+        ++_it;
+    } else
+        processOperation(rootNode, ":");
     if (_it == _end) [[unlikely]]
         throw std::logic_error(UnexpectedEndOfFile + getTokenError(rootIt));
     if (_it.literal() == "{")
@@ -256,32 +265,21 @@ void Lang::Parser::processExpression(AST &parent, const std::string_view &termin
             return;
         }
         processExpressionToken(rootNode, literal);
-        ++_it;
     }
     throw std::logic_error(UnexpectedEndOfFile + getTokenError(rootIt));
 }
 
 void Lang::Parser::processSingleLineExpression(AST &parent)
 {
-    static const char *UnexpectedEndOfFile = "Lang::Parser::processSingleLineExpression: Unexpected end of file in expression\n";
-
     const auto rootIt = _it;
-    const auto line = rootIt->line;
     auto &rootNode = insertNode<TokenType::Expression>(parent, rootIt);
+    const auto literal = _it.literal();
 
-    while (_it != _end) {
-        const auto literal = _it.literal();
-        if (_it->line != line) [[unlikely]]
-            return;
-        processExpressionToken(rootNode, literal);
-    }
-    throw std::logic_error(UnexpectedEndOfFile + getTokenError(rootIt));
+    processExpressionToken(rootNode, literal);
 }
 
 void Lang::Parser::processExpressionToken(AST &parent, const std::string_view &literal)
 {
-    static const char *UnexpectedEndOfFile = "Lang::Parser::processExpressionToken: Unexpected end of file in expression\n";
-
     if (literal == "if")
         processIf(parent);
     else if (literal == "while")
@@ -290,19 +288,17 @@ void Lang::Parser::processExpressionToken(AST &parent, const std::string_view &l
         processFor(parent);
     else if (literal == "switch")
         processSwitch(parent);
+    else if (literal == "return")
+        processReturn(parent);
+    else if (literal == "break")
+        processBreak(parent);
+    else if (literal == "continue")
+        processContinue(parent);
     else if (literal == "{")
         processExpression(parent, "}");
     else if (literal == "[")
         processList(parent);
-    else if (IsName(literal)) {
-        auto next = _it;
-        if (++next == _end) [[unlikely]]
-            throw std::logic_error(UnexpectedEndOfFile + getTokenError(_it));
-        else if (const auto nextLiteral = next.literal(); IsName(nextLiteral) || nextLiteral == "<")
-            processLocal(parent);
-        else
-            processOperation(parent, ";");
-    } else
+    else
         processOperation(parent, ";");
 }
 
@@ -460,6 +456,48 @@ void kF::Lang::Parser::processList(AST &parent)
 void kF::Lang::Parser::processLocal(AST &parent)
 {
 
+}
+
+void kF::Lang::Parser::processReturn(AST &parent)
+{
+    static const char *UnexpectedEndOfFile = "Lang::Parser::processReturn: Unexpected end of file in return statement\n";
+
+    const auto rootIt = _it;
+    auto &rootNode = insertNode<TokenType::Statement, StatementType::Return>(parent, _it);
+
+    if (++_it == _end)
+        throw std::logic_error(UnexpectedEndOfFile + getTokenError(_it));
+    processOperation(rootNode, ";");
+}
+
+void kF::Lang::Parser::processBreak(AST &parent)
+{
+    static const char *UnexpectedEndOfFile = "Lang::Parser::processBreak: Unexpected end of file in break statement\n";
+    static const char *UnexpectedToken = "Lang::Parser::processBreak: Unexpected token in break statement\n";
+
+    const auto rootIt = _it;
+
+    insertNode<TokenType::Statement, StatementType::Break>(parent, _it);
+    if (++_it == _end)
+        throw std::logic_error(UnexpectedEndOfFile + getTokenError(_it));
+    else if (_it.literal() != ";")
+        throw std::logic_error(UnexpectedToken + getTokenError(_it));
+    ++_it;
+}
+
+void kF::Lang::Parser::processContinue(AST &parent)
+{
+    static const char *UnexpectedEndOfFile = "Lang::Parser::processContinue: Unexpected end of file in continue statement\n";
+    static const char *UnexpectedToken = "Lang::Parser::processContinue: Unexpected token in continue statement\n";
+
+    const auto rootIt = _it;
+
+    insertNode<TokenType::Statement, StatementType::Continue>(parent, _it);
+    if (++_it == _end)
+        throw std::logic_error(UnexpectedEndOfFile + getTokenError(_it));
+    else if (_it.literal() != ";")
+        throw std::logic_error(UnexpectedToken + getTokenError(_it));
+    ++_it;
 }
 
 void kF::Lang::Parser::processOperation(AST &parent, const std::string_view &terminate)
@@ -648,7 +686,8 @@ kF::Lang::AST::Ptr kF::Lang::Parser::buildOperator(AST::Ptr lhs, const std::size
         case OperatorType::BitOrAssign:
         case OperatorType::BitXorAssign:        return 1;
         case OperatorType::Coma:                return 0;
-        case OperatorType::Dot:                 return 15;
+        case OperatorType::Dot:
+        case OperatorType::Call:                return 15;
         // Terciary
         case OperatorType::TernaryIf:
         case OperatorType::TernaryElse:         return 1;
@@ -684,8 +723,25 @@ kF::Lang::AST::Ptr kF::Lang::Parser::buildOperator(AST::Ptr lhs, const std::size
         auto &op = _operationStack[_operationIndex];
         switch (op.type) {
         case TokenType::LeftParenthesis:
-            // todo call
+        {
+            ++_openedParenthesis;
+            ++_operationIndex;
+            if (_operationIndex == _operationStack.size())
+                throw std::logic_error(UnexpectedToken + getTokenError(op.token));
+            auto rootNode = AST::Make(op.token, TokenType::Operator, OperatorType::Call);
+            rootNode->children().push(std::move(lhs));
+            // Check if the function call has parameters
+            if (_operationStack[_operationIndex].type != TokenType::RightParenthesis) {
+                auto rhs = buildOperator(buildOperand(), 0);
+                rootNode->children().push(std::move(rhs));
+            }
+            lhs = std::move(rootNode);
             break;
+        }
+
+            // We want to go into the operator case to process the call
+            // The goto avoid calling 'buildOperator(std::move(lhs), 0);'
+            // goto ParserProcessOperatorCaseOperatorType;
         case TokenType::RightParenthesis:
             if (!_openedParenthesis)
                 throw std::logic_error(UnexpectedToken + getTokenError(*op.token));
@@ -737,6 +793,7 @@ kF::Lang::AST::Ptr kF::Lang::Parser::buildOperator(AST::Ptr lhs, const std::size
             case OperatorType::BitXorAssign:
             case OperatorType::Coma:
             case OperatorType::Dot:
+            case OperatorType::Call:
             {
                 const auto precedence = GetPrecedence(op.data.operatorType);
                 if (precedence < minPrecedence)
@@ -753,6 +810,7 @@ kF::Lang::AST::Ptr kF::Lang::Parser::buildOperator(AST::Ptr lhs, const std::size
             default:
                 throw std::logic_error(UnexpectedToken + getTokenError(*op.token));
             }
+            break;
         default:
             throw std::logic_error(UnexpectedToken + getTokenError(*op.token));
         }

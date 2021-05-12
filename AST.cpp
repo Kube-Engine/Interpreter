@@ -29,11 +29,8 @@ void Lang::AST::dump(const std::size_t level) const noexcept
         std::cout << '}' << std::endl;;
         break;
     case TokenType::Property:
-        Tabify(level);
-        std::cout << "property ";
+        std::cout << "property " << _token->literal() << ": ";
         children()[0]->dump(level);
-        std::cout << ": ";
-        children()[1]->dump(level);
         std::cout << ';' << std::endl;
         break;
     case TokenType::Signal:
@@ -74,7 +71,7 @@ void Lang::AST::dump(const std::size_t level) const noexcept
     case TokenType::Expression:
         if (children().empty())
             std::cout << "{}";
-        else if (children().size() == 1u)
+        else if (children().size() == 1u && children()[0]->type() != TokenType::Statement)
             children()[0]->dump(level);
         else {
             std::cout << '{' << std::endl;
@@ -129,7 +126,7 @@ void Lang::AST::dump(const std::size_t level) const noexcept
                     if (i + 1 < children().size()) {
                         std::cout << "else if (";
                         children()[i]->dump(level);
-                            std::cout << ") ";
+                        std::cout << ") ";
                         children()[i + 1]->dump(level);
                         std::cout << ';' << std::endl;
                         i += 2;
@@ -181,6 +178,20 @@ void Lang::AST::dump(const std::size_t level) const noexcept
                 }
             }
             break;
+        case StatementType::Break:
+            std::cout << "break";
+            break;
+        case StatementType::Continue:
+            std::cout << "continue";
+            break;
+        case StatementType::Return:
+            std::cout << "return ";
+            children()[0]->dump(level);
+            break;
+        case StatementType::Emit:
+            std::cout << "emit ";
+            children()[0]->dump(level);
+            break;
         default:
             std::cout << "UNKNOWN STATEMENT" << std::endl;
             break;
@@ -217,12 +228,15 @@ void Lang::AST::dump(const std::size_t level) const noexcept
                 children()[1]->dump();
                 std::cout << " : ";
                 children()[2]->dump();
+        } else if (operatorType() == OperatorType::Call) {
+            children()[0]->dump();
+            std::cout << '(';
+            if (children()[1])
+                children()[1]->dump();
+            std::cout << ')';
         } else
             std::cout << "UNKNOWN OPERATOR";
         std::cout << ')';
-        break;
-    case TokenType::Call:
-        std::cout << "Call" << std::endl;
         break;
     case TokenType::Constant:
         std::cout << _token->literal();

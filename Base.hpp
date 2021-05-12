@@ -130,7 +130,6 @@ namespace kF::Lang
         TemplateType,
         Operator,
         Name,
-        Call,
         Constant,
         LeftParenthesis,
         RightParenthesis
@@ -177,6 +176,7 @@ namespace kF::Lang
         BitXorAssign,
         Coma,
         Dot,
+        Call,
 
         // Terciary
         TernaryIf,

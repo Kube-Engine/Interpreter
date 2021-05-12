@@ -109,6 +109,16 @@ private:
     /** @brief Process local statement from an expression */
     void processLocal(AST &parent);
 
+    /** @brief Process return statement from an expression */
+    void processReturn(AST &parent);
+
+    /** @brief Process break statement from an expression */
+    void processBreak(AST &parent);
+
+    /** @brief Process continue statement from an expression */
+    void processContinue(AST &parent);
+
+
     /** @brief Process operation statement from an expression */
     void processOperation(AST &parent, const std::string_view &terminate);
 

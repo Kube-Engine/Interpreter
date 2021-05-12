@@ -88,7 +88,6 @@ inline kF::Lang::Lexer::ProcessState kF::Lang::Lexer::processSpecialToken(const 
     case '>':
     case '!':
     case '*':
-    case '/':
     case '%':
     case '^':
         processComposedSpecialToken<'='>(begin);
@@ -107,18 +106,19 @@ inline kF::Lang::Lexer::ProcessState kF::Lang::Lexer::processSpecialToken(const 
         processComposedSpecialToken<'-', '='>(begin);
         return ProcessState::Success;
     // Custom cases
-    case '\\':
+    case '/': // Can be either division or comment
         switch (peekNext()) {
-        case '\\':
+        case '/': // It's a line comment
             skipComment();
             return ProcessState::Success;
-        case '*':
+        case '*': // It's a multiline comment
             if (skipMultilineComment()) [[likely]]
                 return ProcessState::Success;
             else [[unlikely]]
                 return ProcessState::Error;
-        default:
-            return ProcessState::NotRecognized;
+        default: // It's a division
+            processComposedSpecialToken<'='>(begin);
+            return ProcessState::Success;
         }
         break;
     case '"':
