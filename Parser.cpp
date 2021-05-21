@@ -15,9 +15,7 @@ void Lang::Parser::prepare(const FileIndex file, const TokenStack *stack, const 
     _it = _stack->begin();
     _end = _stack->end();
     _processStack.clear();
-    _nodeStack.clear();
     _root.reset();
-    _nodeStack.push(_root.get());
     _imports.clear();
     _context = context;
     _file = file;
@@ -43,7 +41,9 @@ void Lang::Parser::processImport(void)
 {
     const auto rootIt = _it;
 
-    if (++_it == _end) [[unlikely]]
+    if (_root)
+        throw std::logic_error("Lang::Parser::processImport: Invalid import statement after class declaration");
+    else if (++_it == _end) [[unlikely]]
         throw std::logic_error("Lang::Parser::processImport: Unexpected end of file in import declaration\n" + getTokenError(rootIt));
     const auto literal = _it.literal();
     if (!IsLiteral(literal)) [[unlikely]]
@@ -298,7 +298,12 @@ void Lang::Parser::processExpressionToken(AST &parent, const std::string_view &l
         processExpression(parent, "}");
     else if (literal == "[")
         processList(parent);
-    else
+    else if (IsName(literal)) {
+        if (auto next = _it; ++next != _end && IsName(next.literal()))
+            processLocal(parent);
+        else
+            processOperation(parent, ";");
+    } else
         processOperation(parent, ";");
 }
 
@@ -455,7 +460,23 @@ void kF::Lang::Parser::processList(AST &parent)
 
 void kF::Lang::Parser::processLocal(AST &parent)
 {
+    static const char *UnexpectedEndOfFile = "Lang::Parser::processLocal: Unexpected end of file in local variable\n";
+    static const char *UnexpectedToken = "Lang::Parser::processLocal: Unexpected token in local variable\n";
 
+    const auto rootIt = _it;
+    auto &rootNode = insertNode<TokenType::Local>(parent, _it);
+
+    if (++_it == _end)
+        throw std::logic_error(UnexpectedEndOfFile + getTokenError(rootIt));
+    insertNode<TokenType::Name>(rootNode, rootIt);
+    insertNode<TokenType::Name>(rootNode, _it);
+    if (++_it == _end)
+        throw std::logic_error(UnexpectedEndOfFile + getTokenError(rootIt));
+    else if (_it.literal() != "=")
+        throw std::logic_error(UnexpectedToken + getTokenError(_it));
+    else if (++_it == _end)
+        throw std::logic_error(UnexpectedEndOfFile + getTokenError(rootIt));
+    processOperation(rootNode, ";");
 }
 
 void kF::Lang::Parser::processReturn(AST &parent)
@@ -466,7 +487,7 @@ void kF::Lang::Parser::processReturn(AST &parent)
     auto &rootNode = insertNode<TokenType::Statement, StatementType::Return>(parent, _it);
 
     if (++_it == _end)
-        throw std::logic_error(UnexpectedEndOfFile + getTokenError(_it));
+        throw std::logic_error(UnexpectedEndOfFile + getTokenError(rootIt));
     processOperation(rootNode, ";");
 }
 
@@ -479,7 +500,7 @@ void kF::Lang::Parser::processBreak(AST &parent)
 
     insertNode<TokenType::Statement, StatementType::Break>(parent, _it);
     if (++_it == _end)
-        throw std::logic_error(UnexpectedEndOfFile + getTokenError(_it));
+        throw std::logic_error(UnexpectedEndOfFile + getTokenError(rootIt));
     else if (_it.literal() != ";")
         throw std::logic_error(UnexpectedToken + getTokenError(_it));
     ++_it;
@@ -494,7 +515,7 @@ void kF::Lang::Parser::processContinue(AST &parent)
 
     insertNode<TokenType::Statement, StatementType::Continue>(parent, _it);
     if (++_it == _end)
-        throw std::logic_error(UnexpectedEndOfFile + getTokenError(_it));
+        throw std::logic_error(UnexpectedEndOfFile + getTokenError(rootIt));
     else if (_it.literal() != ";")
         throw std::logic_error(UnexpectedToken + getTokenError(_it));
     ++_it;

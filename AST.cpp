@@ -9,10 +9,19 @@
 
 using namespace kF;
 
-void Lang::AST::dump(const std::size_t level) const noexcept
+void Lang::AST::dump(const std::size_t level, const bool firstOperation) const noexcept
 {
     constexpr auto Tabify = [](const std::size_t level) {
         std::cout << std::string(level * 2, ' ');
+    };
+
+    constexpr auto PrintEndOfExpression = [](const AST::Ptr &node) {
+        if (const auto type = node->type(); (type == TokenType::Expression && node->children().size() == 1
+                && (node->children()[0]->type() != TokenType::Statement || static_cast<std::uint32_t>(node->children()[0]->statementType()) >= static_cast<std::uint32_t>(StatementType::Break)))
+                || (static_cast<std::uint32_t>(type) > static_cast<std::uint32_t>(TokenType::Expression)))
+            std::cout << ';' << std::endl;
+        else
+            std::cout << std::endl;
     };
 
     switch (_type) {
@@ -31,31 +40,31 @@ void Lang::AST::dump(const std::size_t level) const noexcept
     case TokenType::Property:
         std::cout << "property " << _token->literal() << ": ";
         children()[0]->dump(level);
-        std::cout << ';' << std::endl;
+        PrintEndOfExpression(children()[0]);
         break;
     case TokenType::Signal:
         std::cout << "signal " << _token->literal();
         children()[0]->dump(level);
-        std::cout << ";" << std::endl;
+        PrintEndOfExpression(children()[0]);
         break;
     case TokenType::Function:
         std::cout << "function " << _token->literal();
         children()[0]->dump(level);
         std::cout << " ";
         children()[1]->dump(level);
-        std::cout << ';' << std::endl;
+        PrintEndOfExpression(children()[1]);
         break;
     case TokenType::Event:
         std::cout << "on ";
         children()[0]->dump(level);
         std::cout << ": ";
         children()[1]->dump(level);
-        std::cout << ';' << std::endl;
+        PrintEndOfExpression(children()[1]);
         break;
     case TokenType::Assignment:
         std::cout << _token->literal() << ": ";
         children()[0]->dump(level);
-        std::cout << ';' << std::endl;
+        PrintEndOfExpression(children()[0]);
         break;
     case TokenType::ParameterList:
         std::cout << "(";
@@ -71,14 +80,16 @@ void Lang::AST::dump(const std::size_t level) const noexcept
     case TokenType::Expression:
         if (children().empty())
             std::cout << "{}";
-        else if (children().size() == 1u && children()[0]->type() != TokenType::Statement)
+        else if (children().size() == 1u && (children()[0]->type() != TokenType::Statement
+                || static_cast<std::uint32_t>(children()[0]->statementType()) >= static_cast<std::uint32_t>(StatementType::Break))) {
             children()[0]->dump(level);
-        else {
+        } else {
             std::cout << '{' << std::endl;
             for (const auto &child : children()) {
                 Tabify(level + 1);
                 child->dump(level + 1);
-                std::cout << ';' << std::endl;
+                if (child->type() != TokenType::Statement || static_cast<std::uint32_t>(child->statementType()) >= static_cast<std::uint32_t>(StatementType::Break))
+                    std::cout << ';' << std::endl;
             }
             Tabify(level);
             std::cout << '}';
@@ -104,7 +115,6 @@ void Lang::AST::dump(const std::size_t level) const noexcept
         children()[1]->dump(level);
         std::cout << " = ";
         children()[2]->dump(level);
-        std::cout << ';' << std::endl;
         break;
     case TokenType::Type:
         std::cout << _token->literal();
@@ -155,7 +165,7 @@ void Lang::AST::dump(const std::size_t level) const noexcept
             children()[2]->dump(level);
             std::cout << ") ";
             children()[3]->dump(level);
-            std::cout << ';' << std::endl;
+            std::cout << std::endl;
             break;
         case StatementType::Switch:
             std::cout << "switch (";
@@ -209,34 +219,39 @@ void Lang::AST::dump(const std::size_t level) const noexcept
         std::cout << '>';
         break;
     case TokenType::Operator:
-        std::cout << '(';
+        if (!firstOperation)
+            std::cout << '(';
         if (IsUnary(operatorType())) {
             if (operatorType() == OperatorType::IncrementSuffix || operatorType() == OperatorType::DecrementSuffix) {
-                children()[0]->dump();
+                children()[0]->dump(level, false);
                 std::cout << _token->literal();
             } else {
                 std::cout << _token->literal();
-                children()[0]->dump();
+                children()[0]->dump(level, false);
             }
         } else if (IsBinary(operatorType())) {
-                children()[0]->dump();
-                std::cout << " " << _token->literal() << " ";
-                children()[1]->dump();
+                children()[0]->dump(level, false);
+                if (operatorType() == OperatorType::Dot)
+                    std::cout << _token->literal();
+                else
+                    std::cout << " " << _token->literal() << " ";
+                children()[1]->dump(level, false);
         } else if (IsTerciary(operatorType())) {
-                children()[0]->dump();
+                children()[0]->dump(level, false);
                 std::cout << " " << _token->literal() << " ";
-                children()[1]->dump();
+                children()[1]->dump(level, false);
                 std::cout << " : ";
-                children()[2]->dump();
+                children()[2]->dump(level, false);
         } else if (operatorType() == OperatorType::Call) {
-            children()[0]->dump();
+            children()[0]->dump(level, false);
             std::cout << '(';
             if (children()[1])
-                children()[1]->dump();
+                children()[1]->dump(level, false);
             std::cout << ')';
         } else
             std::cout << "UNKNOWN OPERATOR";
-        std::cout << ')';
+        if (!firstOperation)
+            std::cout << ')';
         break;
     case TokenType::Constant:
         std::cout << _token->literal();

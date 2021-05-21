@@ -151,10 +151,13 @@ inline bool kF::Lang::Lexer::parseString(void) noexcept
     consume<false>();
     char elem = peek();
     if (elem == '"') [[unlikely]] {
-        pushEmptyToken();
+        beginToken('"');
+        feedToken('"');
+        endToken();
         return true;
     }
-    beginToken(elem);
+    beginToken('"');
+    feedToken(elem);
     for (elem = peek(); elem; elem = peek()) {
         if (elem != '"') [[likely]] {
             if (elem != '\\') [[likely]]
@@ -195,6 +198,7 @@ inline bool kF::Lang::Lexer::parseString(void) noexcept
                 }
             }
         } else [[unlikely]] {
+            feedToken('"');
             consume<false>();
             endToken();
             return true;

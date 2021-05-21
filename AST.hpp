@@ -78,7 +78,7 @@ public:
 
 
     /** @brief Dump the whole tree (debug purposes) */
-    void dump(const std::size_t level = 0u) const noexcept;
+    void dump(const std::size_t level = 0u, const bool firstOperation = true) const noexcept;
 
 private:
     /** @brief AST node allocator */
