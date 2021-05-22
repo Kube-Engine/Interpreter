@@ -46,7 +46,7 @@ namespace kF::Lang
     static_assert_fit_cacheline(LexerWork);
 
     /** @brief Parser work functor */
-    struct alignas_double_cacheline ParserWork
+    struct alignas_cacheline ParserWork
     {
         /** @brief Construct the parser worker instance */
         ParserWork(Core::TinyString &&context_, const TokenStack *stack_, const FileIndex file_)
@@ -56,7 +56,9 @@ namespace kF::Lang
         void operator()(void)
         {
             try {
-              node = Parser().run(file, stack, context.toStdView());
+                Parser parser;
+                node = parser.run(file, stack, context.toStdView());
+                imports = std::move(parser.imports());
             } catch (const std::exception &e) {
                 crash = true;
                 error = e.what();
@@ -64,15 +66,15 @@ namespace kF::Lang
         }
 
         Core::TinyString context;
-        Core::TinyString error;
+        Core::TinyVector<Core::TinyString> imports;
+        Core::FlatString error;
         const TokenStack *stack;
         AST::Ptr node;
         FileIndex file;
         bool crash = false;
     };
 
-    static_assert_fit_double_cacheline(ParserWork);
-
+    static_assert_fit_cacheline(ParserWork);
 }
 
 Lang::Interpreter::Interpreter(Flow::Scheduler * const scheduler)
@@ -125,6 +127,30 @@ void Lang::Interpreter::preprocessFile(const std::string_view &path)
 
             // On file parsed success
             auto &node = _directoryManager.fileNode(parserWork->file) = std::move(parserWork->node);
+
+            // Add imports to directory manager
+            for (const auto &import : parserWork->imports) {
+                _directoryManager.discoverDirectory(import.toStdView());
+            }
+
+            // For each class within the file, check if it should be interpreted (using import scope)
+            // node->traverse(
+            //     [this, parserWork, fileDirectory = _directoryManager.fileDirectory(parserWork->file)](const AST &node) {
+            //         if (node.type() != TokenType::Class) [[likely]]
+            //             return false;
+
+            //         const auto &rootFiles = _directoryManager.directoryFiles(fileDirectory);
+            //         for (const auto file : rootFiles) {
+            //             if (_directoryManager.fileName(file) == node.literal()) [[unlikely]] {
+            //                 if (_directoryManager.fileStack(file).empty())
+            //                     preprocessFile()
+            //             }
+            //         }
+
+            //         return true;
+            //     }
+            // );
+
             node->dump();
         });
     });

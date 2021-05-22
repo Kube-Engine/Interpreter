@@ -20,8 +20,8 @@ namespace kF::Lang
 class kF::Lang::DirectoryManager
 {
 public:
-    /** @brief Discover each file in a directory*/
-    [[nodiscard]] DirectoryIndex discoverDirectory(const std::string_view &path, const bool acceptFilePath = false);
+    /** @brief Discover each file in a directory */
+    DirectoryIndex discoverDirectory(const std::string_view &path, const bool acceptFilePath = false);
 
     /** @brief Register a file and discover its directory */
     [[nodiscard]] FileIndex discoverFile(const std::string_view &path);

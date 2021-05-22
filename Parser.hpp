@@ -36,6 +36,10 @@ public:
     [[nodiscard]] AST::Ptr run(const FileIndex file, const TokenStack *stack, const std::string_view &context)
         { prepare(file, stack, context); return std::move(_root); }
 
+    /** @brief Get import paths */
+    [[nodiscard]] auto &imports(void) noexcept { return _imports; }
+    [[nodiscard]] const auto &imports(void) const noexcept { return _imports; }
+
 private:
     // Cacheline 1
     Core::TinyVector<AST *> _processStack {};
@@ -43,7 +47,6 @@ private:
     Token::Iterator _it { nullptr };
     Token::Iterator _end { nullptr };
     AST::Ptr _root {};
-    Core::TinyVector<AST *> _nodeStack {};
     // Cacheline 2
     std::string_view _context {};
     Core::TinyVector<Core::TinyString> _imports {};

@@ -34,6 +34,9 @@ public:
     /** @brief Release all owned memory */
     void release(void) { _data.release(); }
 
+    /** @brief Check if the stack is empty */
+    [[nodiscard]] bool empty(void) const noexcept { return _data.empty(); }
+
 
 public: // Allocator static members
     /** @brief Allocate from the pool */

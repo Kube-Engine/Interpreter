@@ -80,6 +80,11 @@ public:
     /** @brief Dump the whole tree (debug purposes) */
     void dump(const std::size_t level = 0u, const bool firstOperation = true) const noexcept;
 
+    /** @brief Traverse the whole AST tree
+     *  @tparam Callback must take a constant reference to AST and return a boolean */
+    template<typename Callback>
+    void traverse(Callback &&callback) const noexcept_invocable(Callback, const AST &);
+
 private:
     /** @brief AST node allocator */
     static inline std::pmr::synchronized_pool_resource _Pool {};
