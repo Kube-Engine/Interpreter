@@ -3,8 +3,6 @@
  * @ Description: Parser
  */
 
-#include <iostream>
-
 #include "Parser.hpp"
 
 using namespace kF;
@@ -48,7 +46,7 @@ void Lang::Parser::processImport(void)
     const auto literal = _it.literal();
     if (!IsLiteral(literal)) [[unlikely]]
         throw std::logic_error("Lang::Parser::processImport: Import declaration token is not a literal\n" + getTokenError(_it));
-    _imports.push(literal);
+    _imports.push(literal.substr(1, literal.size() - 2));
     ++_it;
 }
 

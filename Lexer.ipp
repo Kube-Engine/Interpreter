@@ -148,15 +148,13 @@ inline void kF::Lang::Lexer::processComposedSpecialToken(const char begin) noexc
 
 inline bool kF::Lang::Lexer::parseString(void) noexcept
 {
-    consume<false>();
+    beginToken('"');
     char elem = peek();
     if (elem == '"') [[unlikely]] {
-        beginToken('"');
         feedToken('"');
         endToken();
         return true;
     }
-    beginToken('"');
     feedToken(elem);
     for (elem = peek(); elem; elem = peek()) {
         if (elem != '"') [[likely]] {

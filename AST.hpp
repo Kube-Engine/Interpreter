@@ -60,6 +60,9 @@ public:
     /** @brief Get node's token */
     [[nodiscard]] const Token *token(void) const noexcept { return _token; }
 
+    /** @brief Get node's token literal representation */
+    [[nodiscard]] std::string_view literal(void) const noexcept { return _token->literal(); }
+
     /** @brief Get node's token type */
     [[nodiscard]] TokenType type(void) const noexcept { return _type; }
 
@@ -137,3 +140,5 @@ private:
 };
 
 static_assert_fit_cacheline(kF::Lang::AST);
+
+#include "AST.ipp"

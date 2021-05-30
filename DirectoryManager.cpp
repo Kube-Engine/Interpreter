@@ -37,14 +37,16 @@ Lang::DirectoryIndex Lang::DirectoryManager::discoverDirectory(const std::string
     for (const auto &entry : std::filesystem::directory_iterator(dirPath)) {
         if (!entry.is_regular_file())
             continue;
-        auto filename = entry.path().filename();
+        auto filePath = entry.path();
+        auto filename = filePath.filename();
         if (!filename.has_extension())
             continue;
         else if (auto ext = filename.extension().string(); ext.size() != 3 || std::toupper(ext[1]) != 'K' || std::toupper(ext[2]) != 'L')
             continue;
         filename.replace_extension();
-        files.push(_fileNames.size());
-        _fileNames.push(filename.string());
+        files.push(_filePaths.size());
+        _filePaths.push(filePath.c_str());
+        _fileNames.push(filename.c_str());
         _fileDirectories.push(dirIndex);
         _fileStacks.push();
         _fileNodes.push();

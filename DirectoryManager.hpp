@@ -27,6 +27,9 @@ public:
     [[nodiscard]] FileIndex discoverFile(const std::string_view &path);
 
 
+    /** @brief Get a file's path */
+    [[nodiscard]] const Core::TinyString &filePath(const FileIndex fileIndex) const noexcept { return _filePaths[fileIndex]; }
+
     /** @brief Get a file's name */
     [[nodiscard]] const Core::TinyString &fileName(const FileIndex fileIndex) const noexcept { return _fileNames[fileIndex]; }
 
@@ -49,6 +52,7 @@ public:
 
 private:
     // Files
+    Core::TinyVector<Core::TinyString> _filePaths;
     Core::TinyVector<Core::TinyString> _fileNames;
     Core::TinyVector<DirectoryIndex> _fileDirectories;
     Core::TinyVector<TokenStack> _fileStacks;
